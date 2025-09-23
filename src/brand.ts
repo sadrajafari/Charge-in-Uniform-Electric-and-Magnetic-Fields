@@ -1,4 +1,5 @@
 // Load init.ts/assert.ts/splash.ts before we load brand information (especially since it includes images).
+import { Property, RichText } from "scenerystack";
 import "./splash.js";
 
 import { brand, madeWithSceneryStackOnLight, madeWithSceneryStackOnDark } from "scenerystack/brand";
@@ -12,7 +13,7 @@ const Brand: TBrand = {
 
   // Optional string for the name of the brand.  If non-null, the brand name will appear in the top of the About dialog
   // {string} For example: "My Company"
-  name: null,
+  name: "PhysMath",
 
   // Optional string for the copyright statement.  If non-null, it will appear in the About dialog
   // {string} For example: "Copyright © 2014, My Company"
@@ -23,7 +24,9 @@ const Brand: TBrand = {
    * For example: { textStringProperty: new Property( "My Company Support" ), url: "https://www.mycompany.com/support" }
    */
   getLinks: function () {
-    return [];
+    return [
+      
+    ];
   },
   logoOnBlackBackground: madeWithSceneryStackOnDark,
   logoOnWhiteBackground: madeWithSceneryStackOnLight,

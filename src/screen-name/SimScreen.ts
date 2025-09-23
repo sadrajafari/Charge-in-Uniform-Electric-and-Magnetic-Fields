@@ -1,5 +1,5 @@
 import { Screen, ScreenOptions } from "scenerystack/sim";
-import { SimModel } from "./model/SimModel.js";
+import { SimModel } from "./model/SimModel";
 import { SimScreenView } from "./view/SimScreenView.js";
 
 export class SimScreen extends Screen<SimModel, SimScreenView> {

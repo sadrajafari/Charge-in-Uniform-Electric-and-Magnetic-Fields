@@ -24,8 +24,6 @@ const equationInput = (container: string, model: SimModel) => {
   ydotDOM.id = "ydot";
   zdotDOM.id = "zdot";
 
-
-
   const vdotx = document.body;
   const vdotxInput = new EquationInput(
     vxDOM,
@@ -88,17 +86,17 @@ const equationInput = (container: string, model: SimModel) => {
 
   const vdotxBox = new HBox({
     align: "center",
-    children: [new RichText("v<sub>x</sub> = ", { scale: 0.8 }), vdotxInput],
+    children: [new RichText("ẍ = ", { scale: 0.8 }), vdotxInput],
   });
 
   const vdotyBox = new HBox({
     align: "center",
-    children: [new RichText("v<sub>y</sub> = ", { scale: 0.8 }), vdotyInput],
+    children: [new RichText("ÿ = ", { scale: 0.8 }), vdotyInput],
   });
 
   const vdotzBox = new HBox({
     align: "center",
-    children: [new RichText("v<sub>z</sub> = ", { scale: 0.8 }), vdotzInput],
+    children: [new RichText("z̈ = ", { scale: 0.8 }), vdotzInput],
   });
 
   const xdotBox = new HBox({
@@ -130,13 +128,12 @@ const equationInput = (container: string, model: SimModel) => {
         // xdotBox,
         // ydotBox,
         // zdotBox,
-
       ],
     }),
     { fill: new Color("#d3d3d3"), maxWidth: 290, scale: 0.9, minWidth: 265 },
   );
 
-  return panel;
+  return { panel, vdotxInput, vdotyInput, vdotzInput };
 };
 
 export default equationInput;

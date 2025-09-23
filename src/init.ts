@@ -21,6 +21,7 @@ init({
 
   // Image to show while loading the simulation. Can be any image URL.
   splashDataURI: madeWithSceneryStackSplashDataURI,
+  
 
   allowLocaleSwitching: true,
 });

@@ -130,7 +130,8 @@ export class GraphComponent {
       .select(`#${containerId}`)
       .append("svg")
       .attr("width", width)
-      .attr("height", height);
+      .attr("height", height)
+      // .style("border", "2px solid black");
 
     // Set up scales
     this.xScale = d3

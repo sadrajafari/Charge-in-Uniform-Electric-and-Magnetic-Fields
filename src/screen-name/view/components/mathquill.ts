@@ -12,6 +12,7 @@ export default class EquationInput extends DOM {
   model: SimModel;
   property: any;
   mathDiv: HTMLElement;
+  mathField: any;
   constructor(
     item: HTMLElement,
     id: any,
@@ -47,28 +48,28 @@ export default class EquationInput extends DOM {
           type VariableKey =
             | "q"
             | "m"
-            | "e0x"
-            | "e0y"
-            | "e0z"
-            | "b0x"
-            | "b0y"
-            | "b0z"
-            | "v0x"
-            | "v0y"
-            | "v0z";
+            | "\\E_x"
+            | "\\E_y"
+            | "\\E_z"
+            | "\\B_x"
+            | "\\B_y"
+            | "\\B_z"
+            | "\\v0x"
+            | "\\v0y"
+            | "\\v0z";
 
-          const variableMap: Record<VariableKey, number> = {
+          const variableMap: Record<string, number> = {
             q: model.q,
             m: model.mass,
-            e0x: model.e0x,
-            e0y: model.e0y,
-            e0z: model.e0z,
-            b0x: model.b0x,
-            b0y: model.b0y,
-            b0z: model.b0z,
-            v0x: model.v0x,
-            v0y: model.v0y,
-            v0z: model.v0z,
+            "\\E_x": model.e0x,
+            "\\E_y": model.e0y,
+            "\\E_z": model.e0z,
+            "\\B_x": model.b0x,
+            "\\B_y": model.b0y,
+            "\\B_z": model.b0z,
+            "\\v0x": model.v0x,
+            "\\v0y": model.v0y,
+            "\\v0z": model.v0z,
           };
 
           // Sort longer keys first to avoid premature replacements
@@ -84,6 +85,7 @@ export default class EquationInput extends DOM {
             // Match only exact expressions (not part of another command)
             const regex = new RegExp(escapedKey + "(?![a-zA-Z_0-9])", "g");
             parsedLatex = parsedLatex.replace(regex, value.toString());
+            // console.log(parsedLatex)
           }
 
           if (property && property.value !== undefined) {
@@ -92,5 +94,61 @@ export default class EquationInput extends DOM {
         },
       },
     });
+    this.mathField = mathField;
+    if (this.property && this.property.value) {
+      this.updateText(this.property.value);
+    }
+  }
+
+  updateText(newLatex: any) {
+    if (this.mathField) {
+      // Set the raw LaTeX for display only
+      this.mathField.latex(newLatex);
+      // Do NOT set this.property.value here!
+    }
+  }
+
+  updatePropertyFromField() {
+    const latex = this.mathField.latex().trim();
+    const variableMap = {
+      "\\v_x": this.model.v0x,
+      "\\v_y": this.model.v0y,
+      "\\v_z": this.model.v0z,
+      q: this.model.q,
+      m: this.model.mass,
+      "\\E_x": this.model.e0x,
+      "\\E_y": this.model.e0y,
+      "\\E_z": this.model.e0z,
+      "\\B_x": this.model.b0x,
+      "\\B_y": this.model.b0y,
+      "\\B_z": this.model.b0z,
+     
+    };
+    type VariableKey =
+      | "\\v_x"
+      | "\\v_y"
+      | "\\v_z"
+      | "q"
+      | "m"
+      | "\\E_x"
+      | "\\E_y"
+      | "\\E_z"
+      | "\\B_x"
+      | "\\B_y"
+      | "\\B_z";
+    const sortedKeys = Object.keys(variableMap).sort(
+      (a, b) => b.length - a.length,
+    ) as VariableKey[];
+    let parsedLatex = latex;
+    for (const key of sortedKeys) {
+      const value = variableMap[key];
+      const escapedKey = key.replace(/\\/g, "\\\\");
+      const regex = new RegExp(escapedKey + "(?![a-zA-Z_0-9])", "g");
+      parsedLatex = parsedLatex.replace(regex, value.toString());
+    }
+    if (this.property && this.property.value !== undefined) {
+      this.property.value = parsedLatex;
+      // console.log('EquationInput updated:', parsedLatex);
+    }
   }
 }

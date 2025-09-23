@@ -1,16 +1,26 @@
 import { ScreenView, ScreenViewOptions } from "scenerystack/sim";
 import { SimModel } from "../model/SimModel.js";
 import { ResetAllButton } from "scenerystack/scenery-phet";
-import { DOM, Rectangle, Text } from "scenerystack/scenery";
+import { Circle, DOM, HBox, Rectangle, Text, VBox } from "scenerystack/scenery";
 import { createConstantPanel } from "./components/constants.js";
 import equationInput from "./components/equationInput.js";
-import { Vector2 } from "scenerystack";
+import {
+  Panel,
+  Property,
+  RoundButton,
+  RoundToggleButton,
+  ToggleSwitch,
+  Vector2,
+} from "scenerystack";
 import Chart3D, { updateChart3D } from "./components/3DAxes.js";
 import rk4 from "./components/rk4.ts";
 // @ts-ignore
 import drawVector from "./components/drawVector.js";
 import { GraphComponent } from "./components/graph.ts";
 import createComponent from "./components/component.ts";
+import Show3DAxesThreeJS from "./components/3DAxesThreeJS.js";
+// @ts-ignore
+import ThreeDGraph from "./components/3DGraph.js";
 
 export class SimScreenView extends ScreenView {
   constantPanel: any;
@@ -21,62 +31,221 @@ export class SimScreenView extends ScreenView {
   x1: number = 0;
   y1: number = 0;
   z1: number = 0;
+  x1Test: number = 0;
+  y1Test: number = 0;
+  z1Test: number = 0;
   trailX: number[] = [];
   trailY: number[] = [];
   trailZ: number[] = [];
+  trailXTest: number[] = [];
+  trailYTest: number[] = [];
+  trailZTest: number[] = [];
   vx1: number = 0;
   vy1: number = 0;
   vz1: number = 0;
+  vx1Test: number = 0;
+  vy1Test: number = 0;
+  vz1Test: number = 0;
   xvelocityGraph: GraphComponent;
   yvelocityGraph: GraphComponent;
   zvelocityGraph: GraphComponent;
   time: number = 0;
   userInteracting: boolean = false;
   run: boolean = false;
+  test: boolean = false;
+  equationPanelBoxes: any;
+  hasTest: boolean = false;
+  prevLeftTop: any;
+  particleUpdate: any;
+  updateParticle: any;
+  updateChartsRange: any;
+
+  // setMagneticFieldDisplayMode: (mode: import("/Users/sadra/Desktop/sceneryStack/Charge in Uniform Electric and Magnetic Fields/src/screen-name/view/components/3DAxesThreeJS").FieldDisplayMode) => void;
+  // setElectricFieldDisplayMode: (mode: import("/Users/sadra/Desktop/sceneryStack/Charge in Uniform Electric and Magnetic Fields/src/screen-name/view/components/3DAxesThreeJS").FieldDisplayMode) => void;
 
   public constructor(model: SimModel, options?: ScreenViewOptions) {
     super(options);
     this.model = model;
     this.layoutBounds.maxX = 1300;
 
+    const redBall = new Circle(7, { fill: "red" });
+    const refText = new Text("Reference", { fontSize: 20, fill: "black" });
+    refText.leftTop = new Vector2(720, 17);
+    this.addChild(refText);
+    const blueBall = new Circle(7, { fill: "blue" });
+    const testText = new Text("Test", { fontSize: 20, fill: "black" });
+    testText.leftTop = new Vector2(920, 17);
+    this.addChild(testText);
+    redBall.leftTop = new Vector2(700, 20);
+    blueBall.leftTop = new Vector2(900, 20);
+    this.addChild(redBall);
+    this.addChild(blueBall);
+
     this.constantPanel = createConstantPanel(model);
     this.constantPanel.leftTop = new Vector2(0, 0);
     this.addChild(this.constantPanel);
 
     this.equationPanel = equationInput("equationPanel", model);
-    this.equationPanel.leftTop = new Vector2(0, this.constantPanel.height + 5);
-    this.addChild(this.equationPanel);
-
-    this.chart3D = Chart3D(
-      "tester",
+    this.equationPanelBoxes = this.equationPanel["panel"];
+    this.equationPanelBoxes.leftTop = new Vector2(
       0,
-      0,
-      0,
-      this.model.e0x,
-      this.model.e0y,
-      this.model.e0z,
-      this.model.b0x,
-      this.model.b0y,
-      this.model.b0z,
-      false,
+      this.constantPanel.height + 65,
     );
-    this.domElement = new DOM(this.chart3D, { allowInput: true });
+    this.addChild(this.equationPanelBoxes);
+
+    const graphDiv = document.createElement("div");
+    graphDiv.id = "graphDiv";
+    graphDiv.style.width = "750px";
+    graphDiv.style.height = "550px";
+    graphDiv.style.backgroundColor = "black";
+    graphDiv.style.marginTop = "2rem";
+    document.body.appendChild(graphDiv);
+    this.chart3D = new ThreeDGraph(750, 550);
+    this.updateParticle = this.chart3D.updateParticle.bind(this.chart3D);
+    this.updateChartsRange = this.chart3D.updateRange.bind(this.chart3D);
+
+    this.updateChartsRange(
+      this.model.Xrange,
+      this.model.Yrange,
+      this.model.Zrange,
+    );
+    this.chart3D.renderer.render(this.chart3D.scene, this.chart3D.camera);
+
+    this.domElement = new DOM(graphDiv, { allowInput: true });
     this.addChild(this.domElement);
-    this.domElement.leftTop = new Vector2(this.constantPanel.width, -60);
-    // this.domElement.leftTop = new Vector2(0, 160);
+    this.domElement.leftTop = new Vector2(250, 10);
+    this.prevLeftTop = this.domElement.leftTop.copy();
 
-    this.chart3D.addEventListener("pointerdown", () => {
-      this.userInteracting = true;
+    this.model.b0xProperty.link((b0x: number) => {
+      (this.chart3D as any).updateFieldVector(
+        b0x,
+        this.model.b0yProperty.value,
+        this.model.b0zProperty.value,
+        this.model.e0xProperty.value,
+        this.model.e0yProperty.value,
+        this.model.e0zProperty.value,
+      );
+    });
+    this.model.b0yProperty.link((b0y: number) => {
+      (this.chart3D as any).updateFieldVector(
+        this.model.b0xProperty.value,
+        b0y,
+        this.model.b0zProperty.value,
+        this.model.e0xProperty.value,
+        this.model.e0yProperty.value,
+        this.model.e0zProperty.value,
+      );
+    });
+    this.model.b0zProperty.link((b0z: number) => {
+      (this.chart3D as any).updateFieldVector(
+        this.model.b0xProperty.value,
+        this.model.b0yProperty.value,
+        b0z,
+        this.model.e0xProperty.value,
+        this.model.e0yProperty.value,
+        this.model.e0zProperty.value,
+      );
     });
 
-    this.chart3D.addEventListener("pointerup", () => {
-      this.userInteracting = false;
+    this.model.e0xProperty.link((e0x: number) => {
+      (this.chart3D as any).updateFieldVector(
+        this.model.b0xProperty.value,
+        this.model.b0yProperty.value,
+        this.model.b0zProperty.value,
+        e0x,
+        this.model.e0yProperty.value,
+        this.model.e0zProperty.value,
+      );
+    });
+    this.model.e0yProperty.link((e0y: number) => {
+      (this.chart3D as any).updateFieldVector(
+        this.model.b0xProperty.value,
+        this.model.b0yProperty.value,
+        this.model.b0zProperty.value,
+        this.model.e0xProperty.value,
+        e0y,
+        this.model.e0zProperty.value,
+      );
+    });
+    this.model.e0zProperty.link((e0z: number) => {
+      (this.chart3D as any).updateFieldVector(
+        this.model.b0xProperty.value,
+        this.model.b0yProperty.value,
+        this.model.b0zProperty.value,
+        this.model.e0xProperty.value,
+        this.model.e0yProperty.value,
+        e0z,
+      );
     });
 
-    // I figure this out later
-    // this.chart3D.addEventListener("wheel", () => {
-    //   this.userInteracting = true;
-    // })
+    const showElectricFieldVector = new Property<boolean>(true);
+    const showMagneticFieldVector = new Property<boolean>(true);
+
+    const ElectricFieldToggleBtn = new ToggleSwitch(
+      showElectricFieldVector,
+      false,
+      true,
+    );
+    const MagneticFieldToggleBtn = new ToggleSwitch(
+      showMagneticFieldVector,
+      false,
+      true,
+    );
+
+    const showElectricFieldVectorHBox = new HBox({
+      align: "center",
+      children: [
+        new Text("Show Electric Field", { fontSize: 20, fill: "black" }),
+        new Rectangle(0, 0, 100, 0),
+        ElectricFieldToggleBtn,
+      ],
+    });
+    // this.addChild(showElectricFieldVectorHBox);
+
+    const showMagneticFieldVectorHBox = new HBox({
+      align: "center",
+      children: [
+        new Text("Show Magnetic Field", { fontSize: 20, fill: "black" }),
+        new Rectangle(0, 0, 90, 0),
+        MagneticFieldToggleBtn,
+      ],
+    });
+    // this.addChild(showMagneticFieldVectorHBox);
+
+    
+    const showVectorsPanel = new Panel(
+      new VBox({
+        align: "center",
+        children: [showElectricFieldVectorHBox, new Rectangle(0, 0, 0, 10), showMagneticFieldVectorHBox],
+      }), {fill: "#d3d3d3", maxWidth: 290, scale: .835}
+    );
+    showVectorsPanel.leftTop = new Vector2(0, this.constantPanel.height + 5);
+    this.addChild(showVectorsPanel);
+   
+    showElectricFieldVector.link((show: boolean) => {
+      this.chart3D.toggleElectricField(show);
+      // Immediately update field vectors so arrows appear/disappear without slider change
+      this.chart3D.updateFieldVector(
+        this.model.b0xProperty.value,
+        this.model.b0yProperty.value,
+        this.model.b0zProperty.value,
+        this.model.e0xProperty.value,
+        this.model.e0yProperty.value,
+        this.model.e0zProperty.value,
+      );
+    });
+    showMagneticFieldVector.link((show: boolean) => {
+      this.chart3D.toggleMagneticField(show);
+      // Immediately update field vectors so arrows appear/disappear without slider change
+      this.chart3D.updateFieldVector(
+        this.model.b0xProperty.value,
+        this.model.b0yProperty.value,
+        this.model.b0zProperty.value,
+        this.model.e0xProperty.value,
+        this.model.e0yProperty.value,
+        this.model.e0zProperty.value,
+      );
+    });
 
     const xvelocityGraph = document.createElement("div");
     xvelocityGraph.style.width = "300px";
@@ -84,7 +253,8 @@ export class SimScreenView extends ScreenView {
     xvelocityGraph.id = "xvelocityGraph";
     const xvelocityGraphDOM = new DOM(xvelocityGraph);
     xvelocityGraphDOM.leftTop = new Vector2(
-      this.constantPanel.width + 700,
+      // this.constantPanel.width + 700,
+      1000,
       this.constantPanel.height + 10,
     );
     document.body.appendChild(xvelocityGraph);
@@ -98,7 +268,8 @@ export class SimScreenView extends ScreenView {
     );
 
     const xvelocityGraphNode = new DOM(xvelocityGraph);
-    xvelocityGraphNode.leftTop = new Vector2(this.domElement.width + 250, -30);
+    // xvelocityGraphNode.leftTop = new Vector2(this.domElement.width + 250, -30);
+    xvelocityGraphNode.leftTop = new Vector2(1000, -30);
     this.addChild(xvelocityGraphNode);
 
     const yvelocityGraph = document.createElement("div");
@@ -107,7 +278,8 @@ export class SimScreenView extends ScreenView {
     yvelocityGraph.id = "yvelocityGraph";
     const yvelocityGraphDOM = new DOM(yvelocityGraph);
     yvelocityGraphDOM.leftTop = new Vector2(
-      this.constantPanel.width + 700,
+      // this.constantPanel.width + 700,
+      1000,
       this.constantPanel.height + 10,
     );
     document.body.appendChild(yvelocityGraph);
@@ -121,7 +293,8 @@ export class SimScreenView extends ScreenView {
     );
 
     const yvelocityGraphNode = new DOM(yvelocityGraph);
-    yvelocityGraphNode.leftTop = new Vector2(this.domElement.width + 250, 170);
+    // yvelocityGraphNode.leftTop = new Vector2(this.domElement.width + 250, 170);
+    yvelocityGraphNode.leftTop = new Vector2(1000, 170);
     this.addChild(yvelocityGraphNode);
 
     const zvelocityGraph = document.createElement("div");
@@ -130,7 +303,8 @@ export class SimScreenView extends ScreenView {
     zvelocityGraph.id = "zvelocityGraph";
     const zvelocityGraphDOM = new DOM(zvelocityGraph);
     zvelocityGraphDOM.leftTop = new Vector2(
-      this.constantPanel.width + 700,
+      // this.constantPanel.width + 700,
+      1000,
       this.constantPanel.height + 10,
     );
     document.body.appendChild(zvelocityGraph);
@@ -144,7 +318,8 @@ export class SimScreenView extends ScreenView {
     );
 
     const zvelocityGraphNode = new DOM(zvelocityGraph);
-    zvelocityGraphNode.leftTop = new Vector2(this.domElement.width + 250, 370);
+    // zvelocityGraphNode.leftTop = new Vector2(this.domElement.width + 250, 370);
+    zvelocityGraphNode.leftTop = new Vector2(1000, 370);
     this.addChild(zvelocityGraphNode);
     const resetAllButton = new ResetAllButton({
       listener: () => {
@@ -157,35 +332,132 @@ export class SimScreenView extends ScreenView {
     });
     // this.addChild(resetAllButton);
     const component = createComponent(model, resetAllButton);
-    component.leftTop = new Vector2(0, this.equationPanel.bottom + 5);
+    component.leftTop = new Vector2(0, this.equationPanelBoxes.bottom + 5);
     this.addChild(component);
+
+    // this.reset();
+    // this.reset();
   }
 
   public reset(): void {
+    // this.resetTrail();
+    this.equationPanel.vdotxInput.updatePropertyFromField();
+    this.equationPanel.vdotyInput.updatePropertyFromField();
+    this.equationPanel.vdotzInput.updatePropertyFromField();
+
     this.x1 = 0;
     this.y1 = 0;
     this.z1 = 0;
+    this.x1Test = 0;
+    this.y1Test = 0;
+    this.z1Test = 0;
+    this.vx1Test = this.model.v0x;
+    this.vy1Test = this.model.v0y;
+    this.vz1Test = this.model.v0z;
     this.vx1 = this.model.v0x;
     this.vy1 = this.model.v0y;
     this.vz1 = this.model.v0z;
     this.trailX = [];
     this.trailY = [];
     this.trailZ = [];
+    this.trailXTest = [];
+    this.trailYTest = [];
+    this.trailZTest = [];
     this.time = 0;
     this.xvelocityGraph.resetGraph();
     this.yvelocityGraph.resetGraph();
     this.zvelocityGraph.resetGraph();
+
+    if (
+      this.model.vdotx !== "" &&
+      this.model.vdoty !== "" &&
+      this.model.vdotz !== ""
+    ) {
+      this.hasTest = true;
+      // Ensure test particle is present in the 3D graph
+      if (this.chart3D && !this.chart3D.showTestParticle) {
+        this.chart3D.showTestParticle = true;
+        this.chart3D.createTestParticle();
+      }
+      // Update test particle state
+      if (this.chart3D && this.chart3D.updateTestParticle) {
+        this.chart3D.updateTestParticle(
+          this.x1Test,
+          this.y1Test,
+          this.z1Test,
+          this.vx1Test,
+          this.vy1Test,
+          this.vz1Test,
+        );
+      }
+    } else {
+      this.hasTest = false;
+      // Remove test particle from the 3D graph if present
+      if (this.chart3D && this.chart3D.showTestParticle) {
+        this.chart3D.showTestParticle = false;
+        if (this.chart3D.testParticle) {
+          this.chart3D.group.remove(this.chart3D.testParticle);
+          this.chart3D.testParticle = null;
+        }
+        if (this.chart3D.testTrailMesh) {
+          this.chart3D.group.remove(this.chart3D.testTrailMesh);
+          this.chart3D.testTrailMesh = null;
+        }
+      }
+    }
+
+    const currentLeftTop = this.domElement.leftTop.copy();
+    // this.removeChild(this.domElement);
+    this.updateChartsRange(
+      this.model.Xrange,
+      this.model.Yrange,
+      this.model.Zrange,
+    );
+
+    // this.chart3D = null;
+    // this.chart3D = Chart3D(
+    //   "tester",
+    //   this.hasTest,
+    //   0,
+    //   0,
+    //   0,
+    //   0,
+    //   0,
+    //   0,
+    //   this.model.b0x,
+    //   this.model.b0y,
+    //   this.model.b0z,
+    //   this.model.Xrange,
+    //   this.model.Yrange,
+    //   this.model.Zrange,
+    // );
+    // this.domElement = new DOM(this.chart3D, { allowInput: true });
+    // this.addChild(this.domElement);
+    // this.domElement.leftTop = new Vector2(300, -60);
+
+    // this.chart3D.addEventListener("pointerdown", () => {
+    //   this.userInteracting = true;
+    // });
+
+    // this.chart3D.addEventListener("pointerup", () => {
+    //   this.userInteracting = false;
+    // });
+
     this.run = true;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public step(dt: number): void {
     // Called every frame, with the time since the last frame in seconds
-
-    if (!this.userInteracting && this.run && this.time < 30) {
+    // this.run = true;
+    if (!this.userInteracting && this.run && this.time < 4.9) {
       const values = rk4(
+        false,
+        "",
+        "",
+        "",
         [this.x1, this.y1, this.z1, this.vx1, this.vy1, this.vz1],
-        0.007 * this.model.simSpeed,
+        0.001 * this.model.simSpeed,
         this.model.q,
         this.model.mass,
         this.model.e0x,
@@ -211,6 +483,10 @@ export class SimScreenView extends ScreenView {
       this.trailY.push(this.y1);
       this.trailZ.push(this.z1);
 
+      // this.particleUpdate(this.x1, this.y1, this.z1);
+      // console.log("Particle at:", this.x1*2, this.y1, this.z1);
+      // console.log("Updating particle to:", this.x1, this.y1, this.z1);
+
       const maxTrailLength = 100000;
       if (this.trailX.length > maxTrailLength) {
         this.trailX.shift();
@@ -218,53 +494,99 @@ export class SimScreenView extends ScreenView {
         this.trailZ.shift();
       }
 
-      // Normalize vectors and apply fixed scale
-      const ARROW_SCALE = 2.0; // Fixed arrow length
+      if (
+        this.model.vdotx !== "" &&
+        this.model.vdoty !== "" &&
+        this.model.vdotz !== ""
+      ) {
+        this.hasTest = true;
+        const testValues = rk4(
+          true,
+          this.model.vdotx,
+          this.model.vdoty,
+          this.model.vdotz,
+          [
+            this.x1Test,
+            this.y1Test,
+            this.z1Test,
+            this.vx1Test,
+            this.vy1Test,
+            this.vz1Test,
+          ],
+          0.001 * this.model.simSpeed,
+          this.model.q,
+          this.model.mass,
+          this.model.e0x,
+          this.model.e0y,
+          this.model.e0z,
+          this.model.b0x,
+          this.model.b0y,
+          this.model.b0z,
+        );
+        this.x1Test = testValues[0];
+        this.y1Test = testValues[1];
+        this.z1Test = testValues[2];
+        [
+          this.x1Test,
+          this.y1Test,
+          this.z1Test,
+          this.vx1Test,
+          this.vy1Test,
+          this.vz1Test,
+        ] = testValues as [number, number, number, number, number, number];
 
-      // Electric field normalization
-      const eMagnitude = Math.sqrt(
-        this.model.e0x ** 2 + this.model.e0y ** 2 + this.model.e0z ** 2,
-      );
-      const eNormX =
-        eMagnitude > 0 ? (this.model.e0x / eMagnitude) * ARROW_SCALE : 0;
-      const eNormY =
-        eMagnitude > 0 ? (this.model.e0y / eMagnitude) * ARROW_SCALE : 0;
-      const eNormZ =
-        eMagnitude > 0 ? (this.model.e0z / eMagnitude) * ARROW_SCALE : 0;
+        this.trailXTest.push(this.x1Test);
+        this.trailYTest.push(this.y1Test);
+        this.trailZTest.push(this.z1Test);
 
-      // Magnetic field normalization
-      const bMagnitude = Math.sqrt(
-        this.model.b0x ** 2 + this.model.b0y ** 2 + this.model.b0z ** 2,
-      );
-      const bNormX =
-        bMagnitude > 0 ? (this.model.b0x / bMagnitude) * ARROW_SCALE : 0;
-      const bNormY =
-        bMagnitude > 0 ? (this.model.b0y / bMagnitude) * ARROW_SCALE : 0;
-      const bNormZ =
-        bMagnitude > 0 ? (this.model.b0z / bMagnitude) * ARROW_SCALE : 0;
+        const maxTrailLength = 100000;
+        if (this.trailXTest.length > maxTrailLength) {
+          this.trailXTest.shift();
+          this.trailYTest.shift();
+          this.trailZTest.shift();
+        }
+      }
 
-      updateChart3D(
-        this.chart3D,
+      (this.chart3D as any).updateParticle(
         this.x1,
         this.y1,
         this.z1,
-        // this.model.e0x,
-        // this.model.e0y,
-        // this.model.e0z,
-        eNormX,
-        eNormY,
-        eNormZ,
-        //
-        this.model.b0x,
-        this.model.b0y,
-        this.model.b0z,
-        this.trailX,
-        this.trailY,
-        this.trailZ,
+        this.vx1,
+        this.vy1,
+        this.vz1,
       );
+      (this.chart3D as any).updateTestParticle(
+        this.x1Test,
+        this.y1Test,
+        this.z1Test,
+        this.vx1Test,
+        this.vy1Test,
+        this.vz1Test,
+      );
+      // (this.chart3D as any).renderer.render(
+      //   (this.chart3D as any).scene,
+      //   (this.chart3D as any).camera,
+      // );
+      // (this.chart3D as any).renderer.render((this.chart3D as any).scene, (this.chart3D as any).camera);
+      // updateChart3D(
+      //   this.chart3D,
+      //   this.hasTest,
+      //   this.x1,
+      //   this.y1,
+      //   this.z1,
+      //   this.trailX,
+      //   this.trailY,
+      //   this.trailZ,
+      //   this.x1Test,
+      //   this.y1Test,
+      //   this.z1Test,
+      //   this.trailXTest,
+      //   this.trailYTest,
+      //   this.trailZTest,
+      // );
 
       this.updateGraphs();
-      this.time += 0.007 * this.model.simSpeed;
+      this.time += 0.001 * this.model.simSpeed;
     }
   }
 
@@ -272,7 +594,7 @@ export class SimScreenView extends ScreenView {
     this.xvelocityGraph.updateGraph(
       this.time,
       this.vx1,
-      null,
+      this.hasTest ? this.vx1Test : null,
       "Time (s)",
       "x Velocity (m/s)",
     );
@@ -280,7 +602,7 @@ export class SimScreenView extends ScreenView {
     this.yvelocityGraph.updateGraph(
       this.time,
       this.vy1,
-      null,
+      this.hasTest ? this.vy1Test : null,
       "Time (s)",
       "y Velocity (m/s)",
     );
@@ -288,7 +610,7 @@ export class SimScreenView extends ScreenView {
     this.zvelocityGraph.updateGraph(
       this.time,
       this.vz1,
-      null,
+      this.hasTest ? this.vz1Test : null,
       "Time (s)",
       "z Velocity (m/s)",
     );
