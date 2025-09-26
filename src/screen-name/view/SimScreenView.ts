@@ -59,6 +59,9 @@ export class SimScreenView extends ScreenView {
   particleUpdate: any;
   updateParticle: any;
   updateChartsRange: any;
+  electricForceVector: any;
+  magneticForceVector: any;
+  updateValues: any;
 
   // setMagneticFieldDisplayMode: (mode: import("/Users/sadra/Desktop/sceneryStack/Charge in Uniform Electric and Magnetic Fields/src/screen-name/view/components/3DAxesThreeJS").FieldDisplayMode) => void;
   // setElectricFieldDisplayMode: (mode: import("/Users/sadra/Desktop/sceneryStack/Charge in Uniform Electric and Magnetic Fields/src/screen-name/view/components/3DAxesThreeJS").FieldDisplayMode) => void;
@@ -103,6 +106,9 @@ export class SimScreenView extends ScreenView {
     this.chart3D = new ThreeDGraph(750, 550);
     this.updateParticle = this.chart3D.updateParticle.bind(this.chart3D);
     this.updateChartsRange = this.chart3D.updateRange.bind(this.chart3D);
+    this.electricForceVector = this.chart3D.electricForceVector.bind(this.chart3D);
+    this.magneticForceVector = this.chart3D.magneticForceVector.bind(this.chart3D);
+    this.updateValues = this.chart3D.updateValues.bind(this.chart3D);
 
     this.updateChartsRange(
       this.model.Xrange,
@@ -367,6 +373,7 @@ export class SimScreenView extends ScreenView {
     this.xvelocityGraph.resetGraph();
     this.yvelocityGraph.resetGraph();
     this.zvelocityGraph.resetGraph();
+    
 
     if (
       this.model.vdotx !== "" &&
@@ -450,6 +457,7 @@ export class SimScreenView extends ScreenView {
   public step(dt: number): void {
     // Called every frame, with the time since the last frame in seconds
     // this.run = true;
+    
     if (!this.userInteracting && this.run && this.time < 4.9) {
       const values = rk4(
         false,
@@ -479,20 +487,14 @@ export class SimScreenView extends ScreenView {
         number,
       ];
 
-      this.trailX.push(this.x1);
-      this.trailY.push(this.y1);
-      this.trailZ.push(this.z1);
+      // (this.magneticForceVector(this.model.q, this.vx1, this.vy1, this.vz1, this.model.b0x, this.model.b0y, this.model.b0z))
 
-      // this.particleUpdate(this.x1, this.y1, this.z1);
-      // console.log("Particle at:", this.x1*2, this.y1, this.z1);
-      // console.log("Updating particle to:", this.x1, this.y1, this.z1);
-
-      const maxTrailLength = 100000;
-      if (this.trailX.length > maxTrailLength) {
-        this.trailX.shift();
-        this.trailY.shift();
-        this.trailZ.shift();
-      }
+      // const maxTrailLength = 100000;
+      // if (this.trailX.length > maxTrailLength) {
+      //   this.trailX.shift();
+      //   this.trailY.shift();
+      //   this.trailZ.shift();
+      // }
 
       if (
         this.model.vdotx !== "" &&
@@ -563,27 +565,7 @@ export class SimScreenView extends ScreenView {
         this.vy1Test,
         this.vz1Test,
       );
-      // (this.chart3D as any).renderer.render(
-      //   (this.chart3D as any).scene,
-      //   (this.chart3D as any).camera,
-      // );
-      // (this.chart3D as any).renderer.render((this.chart3D as any).scene, (this.chart3D as any).camera);
-      // updateChart3D(
-      //   this.chart3D,
-      //   this.hasTest,
-      //   this.x1,
-      //   this.y1,
-      //   this.z1,
-      //   this.trailX,
-      //   this.trailY,
-      //   this.trailZ,
-      //   this.x1Test,
-      //   this.y1Test,
-      //   this.z1Test,
-      //   this.trailXTest,
-      //   this.trailYTest,
-      //   this.trailZTest,
-      // );
+      this.updateValues(this.model.q, this.vx1, this.vy1, this.vz1);
 
       this.updateGraphs();
       this.time += 0.001 * this.model.simSpeed;

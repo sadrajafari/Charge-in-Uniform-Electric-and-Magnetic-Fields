@@ -40,6 +40,7 @@ export default class EquationInput extends DOM {
       handlers: {
         edit: () => {
           const latex = mathField.latex().trim();
+          
           let hasError = false;
           let errorMsg = "";
           mathDiv.style.backgroundColor = "white";
@@ -71,6 +72,7 @@ export default class EquationInput extends DOM {
             "\\v0y": model.v0y,
             "\\v0z": model.v0z,
           };
+          console.log(variableMap);
 
           // Sort longer keys first to avoid premature replacements
           const sortedKeys = Object.keys(variableMap).sort(

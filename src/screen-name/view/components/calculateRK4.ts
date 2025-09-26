@@ -35,7 +35,7 @@ export default function calculateRK4(
 
 
   if (test) {
-    console.log(xdot, ydot, zdot);
+    // console.log("q:", q, "m:", m, "Ex:", Ex, "Ey:", Ey, "Ez:", Ez, "Bx:", Bx, "By:", By, "Bz:", Bz, "vx:", vx, "vy:", vy, "vz:", vz);
   }
   while (t < 5) {
     const values = rk4(

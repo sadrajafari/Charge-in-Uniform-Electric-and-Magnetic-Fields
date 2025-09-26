@@ -29,6 +29,10 @@ export default class ThreeDGraph {
     this.simulationRunning = true; // Start simulation immediately for demo
     this.showElectricField = true; // New property for toggling
     this.showMagneticField = true; // New property for toggling magnetic field
+    this.q = 1;
+    this.vx = 9;
+    this.vy = 100;
+    this.vz = 10;
 
     this.init();
     // this.updateRange();
@@ -38,6 +42,8 @@ export default class ThreeDGraph {
       this.createTestParticle();
     }
     this.showFieldSurfaces(3);
+    this.electricForceVector(this.q, 0, 5, 0);
+    // this.magneticForceVector(this.q, 0, 0, 0, 0, 0, 0);
     this.renderer.render(this.scene, this.camera);
     this.animate();
   }
@@ -108,6 +114,13 @@ export default class ThreeDGraph {
     const pointLight = new THREE.PointLight(0x00aaff, 0.7, 50);
     pointLight.position.set(0, 5, 0);
     this.scene.add(pointLight);
+  }
+
+  updateValues(q, vx, vy, vz) {
+    this.q = q;
+    this.vx = vx;
+    this.vy = vy;
+    this.vz = vz;
   }
 
   createGraph() {
@@ -306,6 +319,16 @@ export default class ThreeDGraph {
     // this.particle.position.set(x, y, z);
     // const [x, y, z] = [x, y, z];
 
+    this.updateMagneticForceVector(
+      this.q,
+      this.vx,
+      this.vy,
+      this.vz,
+      this.Bx,
+      this.By,
+      this.Bz,
+    );
+
     // Stop simulation if out of axis bounds
     if (
       x < this.xRange.min ||
@@ -329,6 +352,13 @@ export default class ThreeDGraph {
     const visualZ = (z - this.zRange.min) * zScale;
 
     this.particle.position.set(visualX, visualY, visualZ);
+
+    if (this.electricForceField) {
+      this.electricForceField.position.set(visualX, visualY, visualZ);
+    }
+    if (this.magneticForceField) {
+      this.magneticForceField.position.set(visualX, visualY, visualZ);
+    }
 
     // Update particle info display (for debugging)
     if (this.particleInfoLabel) {
@@ -430,6 +460,18 @@ export default class ThreeDGraph {
     }
     this.showFieldSurfaces(3);
 
+    // Recreate electric force vector after clearing group
+    this.electricForceVector(this.q, this.Ex, this.Ey, this.Ez);
+    this.magneticForceVector(
+      this.q,
+      this.vx,
+      this.vy,
+      this.vz,
+      this.Bx,
+      this.By,
+      this.Bz,
+    );
+
     // If a particle state is provided, update the particle position
     if (
       particleState &&
@@ -449,37 +491,72 @@ export default class ThreeDGraph {
     this.renderer.render(this.scene, this.camera);
   }
 
-  // updateRange() {
-  //   let dt = 0.0016;
-  //   let t = 0;
-  //   let state = [0, 0, 0, 9, 100, 10]; // initial position (0,0,0), velocity (5,0,0)
-  //   let records = [];
+  electricForceVector(q = this.q, Ex = this.Ex, Ey = this.Ey, Ez = this.Ez) {
+    const xDir = q * Ex;
+    const yDir = q * Ey;
+    const zDir = q * Ez;
 
-  //   // for (let i = 0; i < 5000; i++) { // simulate 5 seconds
-  //   while (t < 5) {
-  //     state = this.rk4(this.lorentz.bind(this), state, t, dt);
-  //     // console.log("Final state:", state);
-  //     records.push(state);
-  //     t += dt;
-  //   }
-  //   const xMin = Math.min(...records.map((r) => r[0]));
-  //   const xMax = Math.max(...records.map((r) => r[0]));
-  //   console.log(xMin, xMax);
+    // Calculate the center of the axes in visual coordinates
+    const centerX = this.axisLength / 2;
+    const centerY = this.axisLength / 2;
+    const centerZ = this.axisLength / 2;
 
-  //   const yMin = Math.min(...records.map((r) => r[1]));
-  //   const yMax = Math.max(...records.map((r) => r[1]));
-  //   console.log(yMin, yMax);
+    // Create direction vector (normalize for ArrowHelper)
+    const dir = new THREE.Vector3(xDir, yDir, zDir).normalize();
+    const length = 2;
 
-  //   const zMin = Math.min(...records.map((r) => r[2]));
-  //   const zMax = Math.max(...records.map((r) => r[2]));
-  //   console.log(zMin, zMax);
+    // Create the arrow
+    this.electricForceField = new THREE.ArrowHelper(
+      dir,
+      new THREE.Vector3(centerX, centerY, centerZ),
+      length,
+      "red",
+      0.3,
+      0.2,
+    );
+    this.electricForceField.visible = true;
+    this.group.add(this.electricForceField);
+  }
 
-  //   this.xRange = { min: xMin, max: xMax };
-  //   this.yRange = { min: yMin, max: yMax };
-  //   this.zRange = { min: zMin, max: zMax };
+  magneticForceVector(q, vx, vy, vz, Bx, By, Bz) {
+    const xDir = q * (vy * Bz - vz * By);
+    const yDir = q * (vz * Bx - vx * Bz);
+    const zDir = q * (vx * By - vy * Bx);
 
-  //   // state now holds [x,y,z,vx,vy,vz] at final time
-  // }
+    // Calculate the center of the axes in visual coordinates
+    const centerX = this.axisLength / 2;
+    const centerY = this.axisLength / 2;
+    const centerZ = this.axisLength / 2;
+
+    // Create direction vector (normalize for ArrowHelper)
+    const dir = new THREE.Vector3(xDir, yDir, zDir).normalize();
+    // const length = 2;
+
+    const mag = Math.sqrt(xDir * xDir + yDir * yDir + zDir * zDir)/1;
+
+    // Create the arrow
+    this.magneticForceField = new THREE.ArrowHelper(
+      dir,
+      new THREE.Vector3(centerX, centerY, centerZ),
+      mag*.06,
+      "blue",
+      0.4,
+      0.2,
+    );
+    // console.log("Magnetic Force Vector:", xDir, yDir, zDir);
+    this.magneticForceField.visible = true;
+    this.group.add(this.magneticForceField);
+  }
+
+  updateMagneticForceVector(q, vx, vy, vz, Bx, By, Bz) {
+    if (this.magneticForceField) {
+      this.group.remove(this.magneticForceField);
+      this.magneticForceField = null;
+    }
+    this.magneticForceVector(q, vx, vy, vz, Bx, By, Bz);
+  }
+
+  
 
   createCustomGrids() {
     // Calculate scaling factors
