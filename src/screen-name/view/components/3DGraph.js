@@ -528,17 +528,24 @@ export default class ThreeDGraph {
     const centerY = this.axisLength / 2;
     const centerZ = this.axisLength / 2;
 
+
+
     // Create direction vector (normalize for ArrowHelper)
     const dir = new THREE.Vector3(xDir, yDir, zDir).normalize();
+    
     // const length = 2;
 
-    const mag = Math.sqrt(xDir * xDir + yDir * yDir + zDir * zDir)/1;
-
+    const mag = Math.sqrt(xDir * xDir + yDir * yDir + zDir * zDir);
+    const minMag = 0;
+    const maxMag = 40;
+    let normalizedMag = 2 * (mag - minMag) / (maxMag - minMag);
+    normalizedMag = Math.max(0, Math.min(2, normalizedMag)); // clamp to [0,2]
+    console.log("Magnetic Force Magnitude:", normalizedMag);
     // Create the arrow
     this.magneticForceField = new THREE.ArrowHelper(
       dir,
       new THREE.Vector3(centerX, centerY, centerZ),
-      mag*.06,
+      normalizedMag,
       "blue",
       0.4,
       0.2,
