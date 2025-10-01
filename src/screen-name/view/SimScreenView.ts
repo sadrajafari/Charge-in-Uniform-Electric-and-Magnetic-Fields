@@ -5,12 +5,15 @@ import { Circle, DOM, HBox, Rectangle, Text, VBox } from "scenerystack/scenery";
 import { createConstantPanel } from "./components/constants.js";
 import equationInput from "./components/equationInput.js";
 import {
+  HSlider,
   Panel,
   Property,
   RoundButton,
   RoundToggleButton,
   ToggleSwitch,
   Vector2,
+  Range,
+  DerivedProperty,
 } from "scenerystack";
 import Chart3D, { updateChart3D } from "./components/3DAxes.js";
 import rk4 from "./components/rk4.ts";
@@ -62,6 +65,10 @@ export class SimScreenView extends ScreenView {
   electricForceVector: any;
   magneticForceVector: any;
   updateValues: any;
+  setFieldSurfaceRows: any;
+  updateRows: any;
+  showMagneticForceVector: any;
+  showElectricForceVector: any;
 
   // setMagneticFieldDisplayMode: (mode: import("/Users/sadra/Desktop/sceneryStack/Charge in Uniform Electric and Magnetic Fields/src/screen-name/view/components/3DAxesThreeJS").FieldDisplayMode) => void;
   // setElectricFieldDisplayMode: (mode: import("/Users/sadra/Desktop/sceneryStack/Charge in Uniform Electric and Magnetic Fields/src/screen-name/view/components/3DAxesThreeJS").FieldDisplayMode) => void;
@@ -106,9 +113,60 @@ export class SimScreenView extends ScreenView {
     this.chart3D = new ThreeDGraph(750, 550);
     this.updateParticle = this.chart3D.updateParticle.bind(this.chart3D);
     this.updateChartsRange = this.chart3D.updateRange.bind(this.chart3D);
-    this.electricForceVector = this.chart3D.electricForceVector.bind(this.chart3D);
-    this.magneticForceVector = this.chart3D.magneticForceVector.bind(this.chart3D);
+    this.electricForceVector = this.chart3D.electricForceVector.bind(
+      this.chart3D,
+    );
+    this.magneticForceVector = this.chart3D.magneticForceVector.bind(
+      this.chart3D,
+    );
     this.updateValues = this.chart3D.updateValues.bind(this.chart3D);
+    this.updateRows = this.chart3D.updateRows.bind(this.chart3D);
+    this.showElectricForceVector = this.chart3D.showElectricForceVector.bind(this.chart3D);
+    this.showMagneticForceVector = this.chart3D.showMagneticForceVector.bind(this.chart3D);
+
+
+
+    this.showElectricForceVector(false)
+    const rowNumberSlider = new HSlider(
+      this.model.rowNumberProperty,
+      new Range(0, Number(6)),
+      { scale: 0.7 },
+    );
+
+    this.addChild(rowNumberSlider);
+    rowNumberSlider.leftTop = new Vector2(
+      380,
+      this.equationPanelBoxes.height - 170,
+    );
+
+    const rowNumberText = new Text("Field Surface Rows", {
+      fontSize: 20,
+      fill: "black",
+      scale: 0.7,
+    });
+    rowNumberText.leftTop = new Vector2(
+      250,
+      this.equationPanelBoxes.height - 165,
+    );
+    this.addChild(rowNumberText);
+
+    this.model.rowNumberProperty.lazyLink((event) => {
+      this.updateRows(parseInt(event));
+      this.chart3D.renderer.render(this.chart3D.scene, this.chart3D.camera);
+    });
+
+    const numberOfSurfacesText = new Text(
+      new DerivedProperty(
+        [this.model.rowNumberProperty],
+        (rowNumber) => `${Math.round(rowNumber)}`,
+      ),
+      { fontSize: 20, fill: "black", scale: 0.7 },
+    );
+    numberOfSurfacesText.leftTop = new Vector2(
+      480,
+      this.equationPanelBoxes.height - 165,
+    );
+    this.addChild(numberOfSurfacesText);
 
     this.updateChartsRange(
       this.model.Xrange,
@@ -218,16 +276,20 @@ export class SimScreenView extends ScreenView {
     });
     // this.addChild(showMagneticFieldVectorHBox);
 
-    
     const showVectorsPanel = new Panel(
       new VBox({
         align: "center",
-        children: [showElectricFieldVectorHBox, new Rectangle(0, 0, 0, 10), showMagneticFieldVectorHBox],
-      }), {fill: "#d3d3d3", maxWidth: 290, scale: .835}
+        children: [
+          showElectricFieldVectorHBox,
+          new Rectangle(0, 0, 0, 10),
+          showMagneticFieldVectorHBox,
+        ],
+      }),
+      { fill: "#d3d3d3", maxWidth: 290, scale: 0.835 },
     );
     showVectorsPanel.leftTop = new Vector2(0, this.constantPanel.height + 5);
     this.addChild(showVectorsPanel);
-   
+
     showElectricFieldVector.link((show: boolean) => {
       this.chart3D.toggleElectricField(show);
       // Immediately update field vectors so arrows appear/disappear without slider change
@@ -373,7 +435,6 @@ export class SimScreenView extends ScreenView {
     this.xvelocityGraph.resetGraph();
     this.yvelocityGraph.resetGraph();
     this.zvelocityGraph.resetGraph();
-    
 
     if (
       this.model.vdotx !== "" &&
@@ -457,7 +518,7 @@ export class SimScreenView extends ScreenView {
   public step(dt: number): void {
     // Called every frame, with the time since the last frame in seconds
     // this.run = true;
-    
+
     if (!this.userInteracting && this.run && this.time < 4.9) {
       const values = rk4(
         false,

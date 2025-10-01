@@ -33,6 +33,8 @@ export default class ThreeDGraph {
     this.vx = 9;
     this.vy = 100;
     this.vz = 10;
+    this.rowNumber = 3;
+    this.show = true;
 
     this.init();
     // this.updateRange();
@@ -41,7 +43,7 @@ export default class ThreeDGraph {
     if (this.showTestParticle) {
       this.createTestParticle();
     }
-    this.showFieldSurfaces(3);
+    this.showFieldSurfaces(this.rowNumber);
     this.electricForceVector(this.q, 0, 5, 0);
     // this.magneticForceVector(this.q, 0, 0, 0, 0, 0, 0);
     this.renderer.render(this.scene, this.camera);
@@ -91,6 +93,7 @@ export default class ThreeDGraph {
     this.group.rotation.x = (3 * Math.PI) / 2;
     this.group.position.set(3, 1, 1);
 
+
     // Add lights
     // this.addLights();
 
@@ -115,6 +118,22 @@ export default class ThreeDGraph {
     pointLight.position.set(0, 5, 0);
     this.scene.add(pointLight);
   }
+
+  updateRows(numRows) {
+    this.rowNumber = numRows;
+    this.showFieldSurfaces(
+      this.rowNumber,
+      this.Bx,
+      this.By,
+      this.Bz,
+      this.Ex,
+      this.Ey,
+      this.Ez,
+    );
+    this.renderer.render(this.scene, this.camera);
+  }
+
+  
 
   updateValues(q, vx, vy, vz) {
     this.q = q;
@@ -143,6 +162,21 @@ export default class ThreeDGraph {
     // this.showElectricFieldVector(this.Ex, this.Ey, this.Ez);
   }
 
+  setFieldSurfaceRows(numRows) {
+    // numRows: integer, number of arrows per axis side
+    this.showFieldSurfaces(
+      numRows,
+      this.Bx,
+      this.By,
+      this.Bz,
+      this.Ex,
+      this.Ey,
+      this.Ez,
+    );
+    // Optionally re-render if needed:
+    this.renderer.render(this.scene, this.camera);
+  }
+
   updateFieldVector(Bx, By, Bz, Ex, Ey, Ez) {
     this.Bx = Bx;
     this.By = By;
@@ -158,7 +192,7 @@ export default class ThreeDGraph {
     if (Ex === 0 && Ey === 0 && Ez === 0) {
       this.group.remove(this.eFieldArrow);
     }
-    this.showFieldSurfaces(3, Bx, By, Bz, Ex, Ey, Ez);
+    this.showFieldSurfaces(this.rowNumber, Bx, By, Bz, Ex, Ey, Ez);
   }
 
   toggleElectricField(show) {
@@ -328,6 +362,8 @@ export default class ThreeDGraph {
       this.By,
       this.Bz,
     );
+    this.showMagneticForceVector(this.show)
+    this.showElectricForceVector(this.show)
 
     // Stop simulation if out of axis bounds
     if (
@@ -458,7 +494,7 @@ export default class ThreeDGraph {
         this.testTrailMesh = null;
       }
     }
-    this.showFieldSurfaces(3);
+    this.showFieldSurfaces(this.rowNumber);
 
     // Recreate electric force vector after clearing group
     this.electricForceVector(this.q, this.Ex, this.Ey, this.Ez);
@@ -471,6 +507,7 @@ export default class ThreeDGraph {
       this.By,
       this.Bz,
     );
+    
 
     // If a particle state is provided, update the particle position
     if (
@@ -518,6 +555,14 @@ export default class ThreeDGraph {
     this.group.add(this.electricForceField);
   }
 
+  showElectricForceVector(status = this.show){
+    status ? this.group.add(this.electricForceField) : this.group.remove(this.electricForceField);
+  }
+
+  showMagneticForceVector(status = this.show) {
+    status ? this.group.add(this.magneticForceField) : this.group.remove(this.magneticForceField);
+  }
+
   magneticForceVector(q, vx, vy, vz, Bx, By, Bz) {
     const xDir = q * (vy * Bz - vz * By);
     const yDir = q * (vz * Bx - vx * Bz);
@@ -528,17 +573,15 @@ export default class ThreeDGraph {
     const centerY = this.axisLength / 2;
     const centerZ = this.axisLength / 2;
 
-
-
     // Create direction vector (normalize for ArrowHelper)
     const dir = new THREE.Vector3(xDir, yDir, zDir).normalize();
-    
+
     // const length = 2;
 
     const mag = Math.sqrt(xDir * xDir + yDir * yDir + zDir * zDir);
     const minMag = 0;
     const maxMag = 40;
-    let normalizedMag = 2 * (mag - minMag) / (maxMag - minMag);
+    let normalizedMag = (2 * (mag - minMag)) / (maxMag - minMag);
     normalizedMag = Math.max(0, Math.min(2, normalizedMag)); // clamp to [0,2]
     console.log("Magnetic Force Magnitude:", normalizedMag);
     // Create the arrow
@@ -553,6 +596,7 @@ export default class ThreeDGraph {
     // console.log("Magnetic Force Vector:", xDir, yDir, zDir);
     this.magneticForceField.visible = true;
     this.group.add(this.magneticForceField);
+    
   }
 
   updateMagneticForceVector(q, vx, vy, vz, Bx, By, Bz) {
@@ -562,8 +606,6 @@ export default class ThreeDGraph {
     }
     this.magneticForceVector(q, vx, vy, vz, Bx, By, Bz);
   }
-
-  
 
   createCustomGrids() {
     // Calculate scaling factors
@@ -1158,7 +1200,7 @@ export default class ThreeDGraph {
   // }
 
   showFieldSurfaces(
-    numPerSide = 3,
+    numPerSide = this.rowNumber,
     bx = this.Bx,
     by = this.By,
     bz = this.Bz,

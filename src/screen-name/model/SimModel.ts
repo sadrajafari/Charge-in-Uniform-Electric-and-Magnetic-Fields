@@ -38,6 +38,7 @@ export class SimModel {
   public hasTestProperty: Property<boolean> = new Property(false);
 
   public simSpeedProperty: Property<number> = new Property(1);
+  public rowNumberProperty: Property<number> = new Property(3);
 
   q: number;
   mass: number;
@@ -63,6 +64,8 @@ export class SimModel {
   Yrange: [number, number] = [-1, 1];
   Zrange: [number, number] = [-1, 1];
   hasTest: boolean = false;
+  rowNumber: number = 3;
+  updateRows: any;
 
   constructor() {
     this.q = this.qproperty.value;
@@ -86,6 +89,7 @@ export class SimModel {
     this.vectorDensity = this.vectorDensityProperty.value;
     this.numberOfSurfaces = this.numberOfSurfacesProperty.value;
     this.hasTest = this.hasTestProperty.value;
+    this.rowNumber = this.rowNumberProperty.value;
 
     this.simSpeedProperty.lazyLink(() => {
       this.simSpeed = this.simSpeedProperty.value;
@@ -98,6 +102,8 @@ export class SimModel {
     this.numberOfSurfacesProperty.lazyLink(() => {
       this.numberOfSurfaces = this.numberOfSurfacesProperty.value;
     });
+    
+    
   }
   public reset(): void {
     // Called when the user presses the reset-all button
