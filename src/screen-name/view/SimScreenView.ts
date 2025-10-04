@@ -69,6 +69,10 @@ export class SimScreenView extends ScreenView {
   updateRows: any;
   showMagneticForceVector: any;
   showElectricForceVector: any;
+  setElectricForceShow: any;
+  setMagneticForceShow: any;
+  setMagneticFieldParticleShow: any;
+  setVelocityVectorShow: any;
 
   // setMagneticFieldDisplayMode: (mode: import("/Users/sadra/Desktop/sceneryStack/Charge in Uniform Electric and Magnetic Fields/src/screen-name/view/components/3DAxesThreeJS").FieldDisplayMode) => void;
   // setElectricFieldDisplayMode: (mode: import("/Users/sadra/Desktop/sceneryStack/Charge in Uniform Electric and Magnetic Fields/src/screen-name/view/components/3DAxesThreeJS").FieldDisplayMode) => void;
@@ -121,12 +125,30 @@ export class SimScreenView extends ScreenView {
     );
     this.updateValues = this.chart3D.updateValues.bind(this.chart3D);
     this.updateRows = this.chart3D.updateRows.bind(this.chart3D);
-    this.showElectricForceVector = this.chart3D.showElectricForceVector.bind(this.chart3D);
-    this.showMagneticForceVector = this.chart3D.showMagneticForceVector.bind(this.chart3D);
+    this.showElectricForceVector = this.chart3D.showElectricForceVector.bind(
+      this.chart3D,
+    );
+    this.showMagneticForceVector = this.chart3D.showMagneticForceVector.bind(
+      this.chart3D,
+    );
+    this.setElectricForceShow = this.chart3D.setElectricForceShow.bind(
+      this.chart3D,
+    );
+    this.setMagneticForceShow = this.chart3D.setMagneticForceShow.bind(
+      this.chart3D,
+    );
+    this.setMagneticFieldParticleShow =
+      this.chart3D.setMagneticFieldParticleShow.bind(this.chart3D);
+    this.setVelocityVectorShow = this.chart3D.setVelocityVectorShow.bind(
+      this.chart3D,
+    );
 
+    this.setVelocityVectorShow(true);
+    this.setMagneticFieldParticleShow(false);
 
+    this.setElectricForceShow(false);
 
-    this.showElectricForceVector(false)
+    // this.showElectricForceVector(false)
     const rowNumberSlider = new HSlider(
       this.model.rowNumberProperty,
       new Range(0, Number(6)),
@@ -244,6 +266,7 @@ export class SimScreenView extends ScreenView {
 
     const showElectricFieldVector = new Property<boolean>(true);
     const showMagneticFieldVector = new Property<boolean>(true);
+    const mode1 = new Property<boolean>(true);
 
     const ElectricFieldToggleBtn = new ToggleSwitch(
       showElectricFieldVector,
@@ -255,6 +278,8 @@ export class SimScreenView extends ScreenView {
       false,
       true,
     );
+
+    const mode1Btn = new ToggleSwitch(mode1, false, true);
 
     const showElectricFieldVectorHBox = new HBox({
       align: "center",
@@ -274,7 +299,15 @@ export class SimScreenView extends ScreenView {
         MagneticFieldToggleBtn,
       ],
     });
-    // this.addChild(showMagneticFieldVectorHBox);
+
+    const modeHBox = new HBox({
+      align: "center",
+      children: [
+        new Text("Vector Display Mode", { fontSize: 20, fill: "black" }),
+        new Rectangle(0, 0, 70, 0),
+        mode1Btn,
+      ],
+    });
 
     const showVectorsPanel = new Panel(
       new VBox({
@@ -283,6 +316,8 @@ export class SimScreenView extends ScreenView {
           showElectricFieldVectorHBox,
           new Rectangle(0, 0, 0, 10),
           showMagneticFieldVectorHBox,
+          new Rectangle(0, 0, 0, 10),
+          modeHBox,
         ],
       }),
       { fill: "#d3d3d3", maxWidth: 290, scale: 0.835 },
@@ -313,6 +348,20 @@ export class SimScreenView extends ScreenView {
         this.model.e0yProperty.value,
         this.model.e0zProperty.value,
       );
+    });
+
+    mode1.link((mode: boolean) => {
+      if (mode) {
+        this.setMagneticFieldParticleShow(true);
+        this.setMagneticForceShow(true);
+        this.setVelocityVectorShow(true);
+        this.setElectricForceShow(false);
+      } else {
+        this.setMagneticFieldParticleShow(false);
+        this.setVelocityVectorShow(false);
+        this.setElectricForceShow(true);
+        this.setMagneticForceShow(true);
+      }
     });
 
     const xvelocityGraph = document.createElement("div");

@@ -128,7 +128,7 @@ export class SimModel {
     this.numberOfSurfaces = this.numberOfSurfacesProperty.value;
     if (this.vdotx !== "" && this.vdoty !== "" && this.vdotz !== "") {
       this.hasTest = true;
-      console.log("has test");
+      // console.log("has test");
     } else {
       this.hasTest = false;
     }
@@ -171,8 +171,8 @@ export class SimModel {
         this.v0yProperty.value,
         this.v0zProperty.value,
       );
-      console.log("heloo  ")
-      console.log(values, testValues);
+      // console.log("heloo  ")
+      // console.log(values, testValues);
       this.Xrange = [
         Math.min(...values.x, ...testValues.x),
         Math.max(...values.x, ...testValues.x),

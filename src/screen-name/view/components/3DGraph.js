@@ -34,7 +34,10 @@ export default class ThreeDGraph {
     this.vy = 100;
     this.vz = 10;
     this.rowNumber = 3;
-    this.show = true;
+    this.showElectricForce = true;
+    this.showMagneticForce = true;
+    this.visibleVelocityVector = true;
+    this.visibleMagneticFieldParticle = true;
 
     this.init();
     // this.updateRange();
@@ -64,6 +67,7 @@ export default class ThreeDGraph {
       1000, // Far clipping plane
     );
     this.camera.position.set(14, 10, -15);
+    // this.camera.position.set(0, 0, -20);
 
     // Create renderer
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -83,16 +87,16 @@ export default class ThreeDGraph {
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
     this.controls.target.set(0, 0, 5); // Look at center of z-axis
-    this.controls.minPolarAngle = Math.PI / 4; // Lower vertical limit
-    this.controls.maxPolarAngle = Math.PI / 2; // Upper vertical limit
-    this.controls.minAzimuthAngle = Math.PI / 2; // Left horizontal limit
-    this.controls.maxAzimuthAngle = -Math.PI; // Right horizontal limit
+    // this.controls.minPolarAngle = Math.PI / 4; // Lower vertical limit
+    // this.controls.maxPolarAngle = Math.PI / 2; // Upper vertical limit
+    // this.controls.minAzimuthAngle = Math.PI / 2; // Left horizontal limit
+    // this.controls.maxAzimuthAngle = -Math.PI; // Right horizontal limit
 
     this.group = new THREE.Group();
     this.scene.add(this.group);
     this.group.rotation.x = (3 * Math.PI) / 2;
-    this.group.position.set(3, 1, 1);
 
+    this.group.position.set(3, 1, 1);
 
     // Add lights
     // this.addLights();
@@ -102,6 +106,426 @@ export default class ThreeDGraph {
     // Handle window resize
     // window.addEventListener("resize", () => this.onWindowResize(), false);
   }
+
+  // setCameraOrthogonalToElectricField(Ex, Ey, Ez, x, y, z) {
+  //   // Skip if electric field is zero
+  //   if (Ex === 0 && Ey === 0 && Ez === 0) {
+  //     return;
+  //   }
+
+  //   // Convert particle position from physical to visual coordinates
+  //   const xScale = this.axisLength / (this.xRange.max - this.xRange.min);
+  //   const yScale = this.axisLength / (this.yRange.max - this.yRange.min);
+  //   const zScale = this.axisLength / (this.zRange.max - this.zRange.min);
+
+  //   const visualX = (x - this.xRange.min) * xScale;
+  //   const visualY = (y - this.yRange.min) * yScale;
+  //   const visualZ = (z - this.zRange.min) * zScale;
+
+  //   // Target point in group space
+  //   const targetPoint = new THREE.Vector3(visualX, visualY, visualZ);
+
+  //   // Get target in world space by applying the group's matrix
+  //   const worldTarget = targetPoint.clone();
+  //   worldTarget.applyMatrix4(this.group.matrixWorld);
+
+  //   // Normalize the electric field vector
+  //   const eField = new THREE.Vector3(Ex, Ey, Ez).normalize();
+
+  //   // Transform the electric field direction to world space (rotation only)
+  //   const worldEField = eField.clone();
+  //   worldEField.applyQuaternion(this.group.quaternion);
+
+  //   // Create a perpendicular vector to position the camera
+  //   let perpendicular;
+
+  //   // First try cross product with world up vector
+  //   const worldUp = new THREE.Vector3(0, 1, 0);
+  //   perpendicular = new THREE.Vector3().crossVectors(worldEField, worldUp);
+
+  //   // If perpendicular vector is too small (field aligned with up), use right vector
+  //   if (perpendicular.lengthSq() < 0.1) {
+  //     const worldRight = new THREE.Vector3(1, 0, 0);
+  //     perpendicular = new THREE.Vector3().crossVectors(worldEField, worldRight);
+  //   }
+
+  //   perpendicular.normalize();
+
+  //   // Position camera along this perpendicular direction
+  //   const distance = 10; // Distance from target
+  //   const cameraPosition = new THREE.Vector3().addVectors(
+  //     worldTarget,
+  //     perpendicular.multiplyScalar(distance),
+  //   );
+
+  //   // Set camera position and orientation
+  //   this.camera.position.copy(cameraPosition);
+  //   this.camera.lookAt(worldTarget);
+  //   this.camera.up.copy(worldEField); // Align camera's up with electric field
+
+  //   // Update orbit controls target
+  //   this.controls.target.copy(worldTarget);
+  // }
+
+  // uncommented original version
+  setCameraOrthogonalToElectricField(Ex, Ey, Ez, x, y, z) {
+    if (Ex === 0 && Ey === 0 && Ez === 0) {
+      return;
+    }
+
+    // Convert particle position from physical to visual coordinates
+    const xScale = this.axisLength / (this.xRange.max - this.xRange.min);
+    const yScale = this.axisLength / (this.yRange.max - this.yRange.min);
+    const zScale = this.axisLength / (this.zRange.max - this.zRange.min);
+
+    const visualX = (x - this.xRange.min) * xScale;
+    const visualY = (y - this.yRange.min) * yScale;
+    const visualZ = (z - this.zRange.min) * zScale;
+
+    // Target point in group space
+    const targetPoint = new THREE.Vector3(visualX, visualY, visualZ);
+
+    // Get target in world space by applying the group's matrix
+    const worldTarget = targetPoint.clone();
+    worldTarget.applyMatrix4(this.group.matrixWorld);
+
+    // Normalize the electric field vector
+    const eField = new THREE.Vector3(Ex, Ey, Ez).normalize();
+
+    // Transform the electric field direction to world space (rotation only)
+    const worldEField = eField.clone();
+    worldEField.applyQuaternion(this.group.quaternion);
+
+    // Find a perpendicular vector using a more robust approach
+    // First, find the smallest component of the field vector
+    let perpendicular;
+    if (
+      Math.abs(worldEField.x) <= Math.abs(worldEField.y) &&
+      Math.abs(worldEField.x) <= Math.abs(worldEField.z)
+    ) {
+      // x is smallest, use unit vector along x
+      perpendicular = new THREE.Vector3(1, 0, 0);
+    } else if (Math.abs(worldEField.y) <= Math.abs(worldEField.z)) {
+      // y is smallest, use unit vector along y
+      perpendicular = new THREE.Vector3(0, 1, 0);
+    } else {
+      // z is smallest, use unit vector along z
+      perpendicular = new THREE.Vector3(0, 0, 1);
+    }
+
+    // Make perpendicular actually perpendicular to worldEField
+    perpendicular.sub(
+      worldEField.clone().multiplyScalar(perpendicular.dot(worldEField)),
+    );
+
+    // Normalize
+    perpendicular.normalize();
+
+    // Position camera along this perpendicular direction
+    const distance = 10; // Distance from target
+    const cameraPosition = new THREE.Vector3().addVectors(
+      worldTarget,
+      perpendicular.multiplyScalar(distance),
+    );
+
+    // Set camera position and orientation
+    this.camera.position.copy(cameraPosition);
+    this.camera.lookAt(worldTarget);
+    // this.camera.up.copy(worldEField); // Align camera's up with electric field
+
+    // Update orbit controls target
+    this.controls.target.copy(worldTarget);
+  }
+
+  // setCameraOrthogonalToElectricField(Ex, Ey, Ez, x, y, z) {
+  //   if (Ex === 0 && Ey === 0 && Ez === 0) {
+  //     return;
+  //   }
+
+  //   // Convert particle position from physical to visual coordinates
+  //   const xScale = this.axisLength / (this.xRange.max - this.xRange.min);
+  //   const yScale = this.axisLength / (this.yRange.max - this.yRange.min);
+  //   const zScale = this.axisLength / (this.zRange.max - this.zRange.min);
+
+  //   const visualX = (x - this.xRange.min) * xScale;
+  //   const visualY = (y - this.yRange.min) * yScale;
+  //   const visualZ = (z - this.zRange.min) * zScale;
+
+  //   // Target point in group space
+  //   const targetPoint = new THREE.Vector3(visualX, visualY, visualZ);
+
+  //   // Get target in world space by applying the group's matrix
+  //   const worldTarget = targetPoint.clone();
+  //   worldTarget.applyMatrix4(this.group.matrixWorld);
+
+  //   // Normalize the electric field vector
+  //   const eField = new THREE.Vector3(Ex, Ey, Ez).normalize();
+
+  //   // Transform the electric field direction to world space (rotation only)
+  //   const worldEField = eField.clone();
+  //   worldEField.applyQuaternion(this.group.quaternion);
+
+  //   // Find a perpendicular vector using a more robust approach
+  //   let perpendicular;
+  //   if (
+  //     Math.abs(worldEField.x) <= Math.abs(worldEField.y) &&
+  //     Math.abs(worldEField.x) <= Math.abs(worldEField.z)
+  //   ) {
+  //     perpendicular = new THREE.Vector3(1, 0, 0);
+  //   } else if (Math.abs(worldEField.y) <= Math.abs(worldEField.z)) {
+  //     perpendicular = new THREE.Vector3(0, 1, 0);
+  //   } else {
+  //     perpendicular = new THREE.Vector3(0, 0, 1);
+  //   }
+
+  //   // Make perpendicular actually perpendicular to worldEField
+  //   perpendicular.sub(
+  //     worldEField.clone().multiplyScalar(perpendicular.dot(worldEField)),
+  //   );
+
+  //   // Normalize
+  //   perpendicular.normalize();
+
+  //   // Calculate the "up" direction (in world space)
+  //   const worldUp = new THREE.Vector3(0, 1, 0);
+
+  //   // Calculate a vector that's elevated at 45 degrees
+  //   // First, ensure we have a vector perpendicular to both the field and the viewing direction
+  //   const elevationAxis = new THREE.Vector3()
+  //     .crossVectors(perpendicular, worldEField)
+  //     .normalize();
+
+  //   // Rotate the perpendicular vector 45 degrees around the elevation axis
+  //   const angle = Math.PI / 4; // 45 degrees
+  //   // const elevatedDirection = perpendicular
+  //   //   .clone()
+  //   //   .applyAxisAngle(elevationAxis, angle);
+
+  //   // Optional: Add this logging to debug camera position
+  //   const horizontalPerp = perpendicular.clone();
+  //   horizontalPerp.y = 0;
+  //   horizontalPerp.normalize();
+
+  //   // Create a 45-degree elevated vector (mix of horizontal and vertical)
+  //   const elevatedDirection1 = new THREE.Vector3()
+  //     .addScaledVector(horizontalPerp, Math.cos(Math.PI / 4))
+  //     .addScaledVector(new THREE.Vector3(0, 1, 0), Math.sin(Math.PI / 4));
+
+  //   // This will always be 45 degrees from horizontal, regardless of field direction
+  //   console.log(
+  //     "Angle to horizon:",
+  //     Math.asin(elevatedDirection1.y) * (180 / Math.PI), // Should be ~45
+  //   );
+  //   // Use an increased distance for better visibility at an angle
+  //   const distance = 10; // Increased from 10
+  //   const cameraPosition = new THREE.Vector3().addVectors(
+  //     worldTarget,
+  //     elevatedDirection1.multiplyScalar(distance),
+  //   );
+
+  //   // Set camera position and orientation
+  //   this.camera.position.copy(cameraPosition);
+  //   this.camera.lookAt(worldTarget);
+
+  //   // Use a normalized up vector
+  //   this.camera.up.set(0, 0.5, 0);
+
+  //   // Update orbit controls target
+  //   this.controls.target.copy(worldTarget);
+
+  //   console.log("Camera position:", this.camera.position);
+  //   console.log("Looking at:", worldTarget);
+  //   // console.log(
+  //   //   "Angle to horizon:",
+  //   //   Math.asin(Math.max(-1, Math.min(1, elevatedDirection.y))) *
+  //   //     (180 / Math.PI),
+  //   // );
+  // }
+
+  // Over here I should upcomment
+
+  // setCameraOrthogonalToMagneticField(Bx, By, Bz, x, y, z) {
+  //   // Skip if magnetic field is zero
+  //   if (Bx === 0 && By === 0 && Bz === 0) {
+  //     return;
+  //   }
+
+  //   // Convert particle position from physical to visual coordinates
+  //   const xScale = this.axisLength / (this.xRange.max - this.xRange.min);
+  //   const yScale = this.axisLength / (this.yRange.max - this.yRange.min);
+  //   const zScale = this.axisLength / (this.zRange.max - this.zRange.min);
+
+  //   const visualX = (x - this.xRange.min) * xScale;
+  //   const visualY = (y - this.yRange.min) * yScale;
+  //   const visualZ = (z - this.zRange.min) * zScale;
+
+  //   // Target point in group space
+  //   const targetPoint = new THREE.Vector3(visualX, visualY, visualZ);
+
+  //   // Get target in world space by applying the group's matrix
+  //   const worldTarget = targetPoint.clone();
+  //   worldTarget.applyMatrix4(this.group.matrixWorld);
+
+  //   // Normalize the magnetic field vector
+  //   const bField = new THREE.Vector3(Bx, By, Bz).normalize();
+
+  //   // Transform the magnetic field direction to world space (rotation only)
+  //   const worldBField = bField.clone();
+  //   worldBField.applyQuaternion(this.group.quaternion);
+
+  //   //
+  //   const vx = this.vx;
+  //   const vy = this.vy;
+  //   const vz = this.vz;
+  //   const q = this.q;
+
+  //   // Cross product components: F = q * (v × B)
+  //   const forceX = q * (vy * Bz - vz * By);
+  //   const forceY = q * (vz * Bx - vx * Bz);
+  //   const forceZ = q * (vx * By - vy * Bx);
+
+  //   // Create force direction vector and normalize
+  //   const forceDir = new THREE.Vector3(forceX, forceY, forceZ).normalize();
+
+  //   // Transform force direction to world space
+  //   const worldForceDir = forceDir.clone();
+  //   worldForceDir.applyQuaternion(this.group.quaternion);
+
+  //   // Add a slight rotation from x-axis for better perspective if needed
+  //   const rotationAxis = new THREE.Vector3(1, 0, 0);
+  //   const rotationAngle = Math.PI / 12; // 15 degrees
+  //   worldForceDir.applyAxisAngle(rotationAxis, rotationAngle);
+  //   //
+
+  //   // Find a perpendicular vector using the same robust approach
+  //   let perpendicular;
+  //   if (
+  //     Math.abs(worldBField.x) <= Math.abs(worldBField.y) &&
+  //     Math.abs(worldBField.x) <= Math.abs(worldBField.z)
+  //   ) {
+  //     perpendicular = new THREE.Vector3(1, 0, 0);
+  //   } else if (Math.abs(worldBField.y) <= Math.abs(worldBField.z)) {
+  //     perpendicular = new THREE.Vector3(0, 1, 0);
+  //   } else {
+  //     perpendicular = new THREE.Vector3(0, 0, 1);
+  //   }
+
+  //   // Make perpendicular actually perpendicular to worldBField
+  //   perpendicular.sub(
+  //     worldBField.clone().multiplyScalar(perpendicular.dot(worldBField)),
+  //   );
+
+  //   // Normalize
+  //   perpendicular.normalize();
+
+  //   // Calculate a vector that's at 45 degrees from the origin to the particle
+  //   // by combining the perpendicular direction with an "up" component
+  //   const upVector = new THREE.Vector3(0, 1, 0);
+  //   const upComponent = upVector
+  //     .clone()
+  //     .sub(worldBField.clone().multiplyScalar(upVector.dot(worldBField)))
+  //     .normalize();
+
+  //   // Create a mixed direction that's 45 degrees from horizontal
+  //   const mixedDirection = new THREE.Vector3()
+  //     .addScaledVector(perpendicular, 1)
+  //     .addScaledVector(upComponent, 1)
+  //     .normalize();
+
+  //   // Position camera along this direction at a distance from the target
+  //   const distance = 10; // Distance from target
+  //   const cameraPosition = new THREE.Vector3().addVectors(
+  //     worldTarget,
+
+  //     mixedDirection.multiplyScalar(distance),
+  //   );
+
+  //   // Set camera position and orientation
+  //   this.camera.position.copy(cameraPosition);
+  //   this.camera.lookAt(worldTarget);
+
+  //   // Use a fixed up vector to avoid camera roll
+  //   this.camera.up.set(0, 1, 0);
+
+  //   // Update orbit controls target to follow the particle
+  //   this.controls.target.copy(worldTarget);
+  // }
+
+  // ...existing code...
+  // ...existing code...
+  // ...existing code...
+setCameraOrthogonalToMagneticField(Bx, By, Bz, x, y, z) {
+  // nothing to do if no magnetic field
+  if (Bx === 0 && By === 0 && Bz === 0) return;
+
+  // ensure group transforms are up to date
+  this.group.updateMatrixWorld(true);
+
+  // convert particle physical position -> visual coords
+  const xScale = this.axisLength / (this.xRange.max - this.xRange.min);
+  const yScale = this.axisLength / (this.yRange.max - this.yRange.min);
+  const zScale = this.axisLength / (this.zRange.max - this.zRange.min);
+  const visualX = (x - this.xRange.min) * xScale;
+  const visualY = (y - this.yRange.min) * yScale;
+  const visualZ = (z - this.zRange.min) * zScale;
+
+  // particle target in world space
+  const targetPoint = new THREE.Vector3(visualX, visualY, visualZ);
+  const worldTarget = targetPoint.clone().applyMatrix4(this.group.matrixWorld);
+
+  // compute magnetic force in model (physical) coordinates: F = q * (v × B)
+  const vx = this.vx, vy = this.vy, vz = this.vz, q = this.q;
+  const fX = q * (vy * Bz - vz * By);
+  const fY = q * (vz * Bx - vx * Bz);
+  const fZ = q * (vx * By - vy * Bx);
+  const force = new THREE.Vector3(fX, fY, fZ);
+
+  // determine a reliable world-space horizontal heading (based on force)
+  const eps = 1e-12;
+  let worldForceDir = new THREE.Vector3();
+  if (force.lengthSq() > eps) {
+    worldForceDir.copy(force).normalize().applyQuaternion(this.group.quaternion);
+  } else {
+    // fallback: use B's world direction
+    worldForceDir.copy(new THREE.Vector3(Bx, By, Bz)).normalize().applyQuaternion(this.group.quaternion);
+  }
+
+  // project force to horizontal plane to get heading
+  const horiz = worldForceDir.clone();
+  horiz.y = 0;
+  if (horiz.lengthSq() < 1e-8) {
+    // force nearly vertical: pick perpendicular horizontal direction
+    horiz.set(worldForceDir.z, 0, -worldForceDir.x);
+    if (horiz.lengthSq() < 1e-8) horiz.set(1, 0, 0);
+  }
+  horiz.normalize();
+
+  // Build a direction 45° above horizontal, preserving heading
+  const angle45 = Math.PI / 9;
+  const up = new THREE.Vector3(0, 1, 0);
+  const elevatedDir = new THREE.Vector3()
+    .addScaledVector(horiz, Math.cos(angle45))
+    .addScaledVector(up, Math.sin(angle45))
+    .normalize();
+
+  // place camera at specified distance along elevatedDir (in front of particle)
+  const distance = 10; // adjust for framing
+  const cameraPos = worldTarget.clone().add(elevatedDir.clone().multiplyScalar(distance));
+  this.camera.position.copy(cameraPos);
+
+  // make camera always look at the particle
+  this.camera.lookAt(worldTarget);
+
+  // stable up vector
+  const worldUp = new THREE.Vector3(0, 1, 0);
+  this.camera.up.copy(worldUp);
+
+  // update controls target so interaction stays centered on the particle
+  this.controls.target.copy(worldTarget);
+}
+// ...existing
+  // ...existing code...
+  // ...existing code...
 
   addLights() {
     // Ambient light for overall illumination
@@ -133,13 +557,24 @@ export default class ThreeDGraph {
     this.renderer.render(this.scene, this.camera);
   }
 
-  
-
   updateValues(q, vx, vy, vz) {
     this.q = q;
     this.vx = vx;
     this.vy = vy;
     this.vz = vz;
+  }
+
+  setElectricForceShow(status) {
+    this.showElectricForce = status;
+  }
+  setMagneticForceShow(status) {
+    this.showMagneticForce = status;
+  }
+  setMagneticFieldParticleShow(status) {
+    this.visibleMagneticFieldParticle = status;
+  }
+  setVelocityVectorShow(status) {
+    this.visibleVelocityVector = status;
   }
 
   createGraph() {
@@ -151,15 +586,6 @@ export default class ThreeDGraph {
 
     // Add axis labels
     this.createAxisLabels();
-
-    // const bx = parseFloat(document.getElementById("slider-bx")?.value || 50);
-    // const by = parseFloat(document.getElementById("slider-by")?.value || 10);
-    // const bz = parseFloat(document.getElementById("slider-bz")?.value || 100);
-    // this.showMagneticFieldVector(this.Bx, this.By, this.Bz);
-    // const ex = parseFloat(document.getElementById("slider-ex")?.value || 0);
-    // const ey = parseFloat(document.getElementById("slider-ey")?.value || 0);
-    // const ez = parseFloat(document.getElementById("slider-ez")?.value || 10);
-    // this.showElectricFieldVector(this.Ex, this.Ey, this.Ez);
   }
 
   setFieldSurfaceRows(numRows) {
@@ -362,8 +788,16 @@ export default class ThreeDGraph {
       this.By,
       this.Bz,
     );
-    this.showMagneticForceVector(this.show)
-    this.showElectricForceVector(this.show)
+    this.showMagneticForceVector(this.showMagneticForce);
+    this.showElectricForceVector(this.showElectricForce);
+    this.showVelocityVector(this.visibleVelocityVector);
+    this.showMagneticFieldOnParticleVector(this.visibleMagneticFieldParticle);
+
+    // Commented here
+    // this.setCameraOrthogonalToElectricField(this.Ex, this.Ey, this.Ez, x, y, z);
+    // Inside updateParticle method:
+    this.setCameraOrthogonalToMagneticField(this.Bx, this.By, this.Bz, x, y, z);
+    // this.setCameraOrthogonalToMagneticField(this.Bx, this.By, this.Bz, x, y, z);
 
     // Stop simulation if out of axis bounds
     if (
@@ -414,6 +848,37 @@ export default class ThreeDGraph {
     //   0.6,
     // );
 
+    // Velocity vector arrow update
+    // if (this.velocityArrow) {
+    //   this.group.remove(this.velocityArrow);
+    //   this.velocityArrow = null;
+    // }
+    // // Only show if velocity is nonzero
+    // if (vx !== 0 || vy !== 0 || vz !== 0) {
+    //   const xScale = this.axisLength / (this.xRange.max - this.xRange.min);
+    //   const yScale = this.axisLength / (this.yRange.max - this.yRange.min);
+    //   const zScale = this.axisLength / (this.zRange.max - this.zRange.min);
+    //   const visualX = (x - this.xRange.min) * xScale;
+    //   const visualY = (y - this.yRange.min) * yScale;
+    //   const visualZ = (z - this.zRange.min) * zScale;
+    //   const vDir = new THREE.Vector3(vx, vy, vz).normalize();
+    //   const vMag = Math.sqrt(vx * vx + vy * vy + vz * vz);
+    //   // Scale length for visibility
+    //   const length = Math.max(0.5, Math.min(2, vMag * 0.45));
+    //   this.velocityArrow = new THREE.ArrowHelper(
+    //     vDir,
+    //     new THREE.Vector3(visualX, visualY, visualZ),
+    //     length,
+    //     0x00cc00, // green
+    //     0.3,
+    //     0.2,
+    //   );
+    //   this.velocityArrow.visible = this.showVelocityVector !== false;
+    //   this.group.add(this.velocityArrow);
+    // }
+
+    this.velocityVectorArrow(x, y, z, vx, vy, vz);
+    this.magneticFieldOnParticle(x, y, z, this.Bx, this.By, this.Bz);
     // Update trail
     this.updateTrail();
 
@@ -427,7 +892,7 @@ export default class ThreeDGraph {
     testParticleState = null,
   ) {
     // Update the range of the particle's position and velocity
-    console.log("Updating ranges:", xRange, yRange, zRange);
+    // console.log("Updating ranges:", xRange, yRange, zRange);
     if (xRange[0] === 0 && xRange[1] === 0) {
       this.xRange = {
         min: -1,
@@ -507,7 +972,6 @@ export default class ThreeDGraph {
       this.By,
       this.Bz,
     );
-    
 
     // If a particle state is provided, update the particle position
     if (
@@ -555,12 +1019,30 @@ export default class ThreeDGraph {
     this.group.add(this.electricForceField);
   }
 
-  showElectricForceVector(status = this.show){
-    status ? this.group.add(this.electricForceField) : this.group.remove(this.electricForceField);
+  showElectricForceVector(status = this.showElectricForce) {
+    status
+      ? this.group.add(this.electricForceField)
+      : this.group.remove(this.electricForceField);
   }
 
-  showMagneticForceVector(status = this.show) {
-    status ? this.group.add(this.magneticForceField) : this.group.remove(this.magneticForceField);
+  showMagneticForceVector(status = this.showMagneticForce) {
+    status
+      ? this.group.add(this.magneticForceField)
+      : this.group.remove(this.magneticForceField);
+  }
+
+  showVelocityVector(status = this.visibleVelocityVector) {
+    status
+      ? this.group.add(this.velocityArrow)
+      : this.group.remove(this.velocityArrow);
+  }
+
+  showMagneticFieldOnParticleVector(
+    status = this.visibleMagneticFieldParticle,
+  ) {
+    status
+      ? this.group.add(this.magneticFieldOnParticleArrow)
+      : this.group.remove(this.magneticFieldOnParticleArrow);
   }
 
   magneticForceVector(q, vx, vy, vz, Bx, By, Bz) {
@@ -583,7 +1065,7 @@ export default class ThreeDGraph {
     const maxMag = 40;
     let normalizedMag = (2 * (mag - minMag)) / (maxMag - minMag);
     normalizedMag = Math.max(0, Math.min(2, normalizedMag)); // clamp to [0,2]
-    console.log("Magnetic Force Magnitude:", normalizedMag);
+    // console.log("Magnetic Force Magnitude:", normalizedMag);
     // Create the arrow
     this.magneticForceField = new THREE.ArrowHelper(
       dir,
@@ -596,7 +1078,6 @@ export default class ThreeDGraph {
     // console.log("Magnetic Force Vector:", xDir, yDir, zDir);
     this.magneticForceField.visible = true;
     this.group.add(this.magneticForceField);
-    
   }
 
   updateMagneticForceVector(q, vx, vy, vz, Bx, By, Bz) {
@@ -1118,6 +1599,78 @@ export default class ThreeDGraph {
         new THREE.Float32BufferAttribute(positions, 3),
       );
       this.testTrailMesh.geometry.attributes.position.needsUpdate = true;
+    }
+  }
+
+  velocityVectorArrow(x, y, z, vx, vy, vz) {
+    // Remove previous velocity arrow if it exists
+    if (this.velocityArrow) {
+      this.group.remove(this.velocityArrow);
+      this.velocityArrow = null;
+    }
+    // Only show if velocity is nonzero
+    if (vx !== 0 || vy !== 0 || vz !== 0) {
+      const xScale = this.axisLength / (this.xRange.max - this.xRange.min);
+      const yScale = this.axisLength / (this.yRange.max - this.yRange.min);
+      const zScale = this.axisLength / (this.zRange.max - this.zRange.min);
+      const visualX = (x - this.xRange.min) * xScale;
+      const visualY = (y - this.yRange.min) * yScale;
+      const visualZ = (z - this.zRange.min) * zScale;
+      const vDir = new THREE.Vector3(vx, vy, vz).normalize();
+      const vMag = Math.sqrt(vx * vx + vy * vy + vz * vz);
+      // Scale length for visibility
+      const minMag = 0;
+      const maxMag = 15; // or set to your expected max velocity magnitude
+      const length = Math.max(
+        0,
+        Math.min(2, (2 * (vMag - minMag)) / (maxMag - minMag)),
+      );
+      this.velocityArrow = new THREE.ArrowHelper(
+        vDir,
+        new THREE.Vector3(visualX, visualY, visualZ),
+        length,
+        0x00cc00, // green
+        0.3,
+        0.2,
+      );
+      this.velocityArrow.visible = this.visibleVelocityVector !== false;
+      this.group.add(this.velocityArrow);
+    }
+  }
+
+  magneticFieldOnParticle(x, y, z, Bx, By, Bz) {
+    // Remove previous arrow if it exists
+    if (this.magneticFieldOnParticleArrow) {
+      this.group.remove(this.magneticFieldOnParticleArrow);
+      this.magneticFieldOnParticleArrow = null;
+    }
+    // Only show if field is nonzero
+    if (Bx !== 0 || By !== 0 || Bz !== 0) {
+      const xScale = this.axisLength / (this.xRange.max - this.xRange.min);
+      const yScale = this.axisLength / (this.yRange.max - this.yRange.min);
+      const zScale = this.axisLength / (this.zRange.max - this.zRange.min);
+      const visualX = (x - this.xRange.min) * xScale;
+      const visualY = (y - this.yRange.min) * yScale;
+      const visualZ = (z - this.zRange.min) * zScale;
+      const dir = new THREE.Vector3(Bx, By, Bz).normalize();
+      const mag = Math.sqrt(Bx * Bx + By * By + Bz * Bz);
+      const minMag = 0;
+      const maxMag = 5; // adjust as needed for your field strength
+      const length = Math.max(
+        0,
+        Math.min(2, (2 * (mag - minMag)) / (maxMag - minMag)),
+      );
+      this.magneticFieldOnParticleArrow = new THREE.ArrowHelper(
+        dir,
+        new THREE.Vector3(visualX, visualY, visualZ),
+        length,
+        "black", // deep sky blue
+        0.3,
+        0.2,
+      );
+      this.magneticFieldOnParticleArrow.visible =
+        this.visibleMagneticFieldParticle !== false;
+      this.group.add(this.magneticFieldOnParticleArrow);
     }
   }
 
