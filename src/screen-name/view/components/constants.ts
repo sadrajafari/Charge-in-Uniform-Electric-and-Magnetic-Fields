@@ -61,7 +61,7 @@ export function createConstantPanel(model: SimModel) {
     children: [
       qSlider,
       new Rectangle(0, 0, 0, 12),
-      new HSlider(model.massProperty, new Range(0.01, 0.5), { scale: 0.6 }),
+      new HSlider(model.massProperty, new Range(0.01, 0.1), { scale: 0.6 }),
       new Rectangle(0, 0, 0, 12),
       new HSlider(model.e0xProperty, new Range(0, 10), { scale: 0.6 }),
       new Rectangle(0, 0, 0, 12),

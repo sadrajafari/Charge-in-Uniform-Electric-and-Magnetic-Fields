@@ -1,9 +1,19 @@
 import { ScreenView, ScreenViewOptions } from "scenerystack/sim";
 import { SimModel } from "../model/SimModel.js";
 import { ResetAllButton } from "scenerystack/scenery-phet";
-import { Circle, DOM, HBox, Rectangle, Text, VBox } from "scenerystack/scenery";
+import {
+  Circle,
+  DOM,
+  HBox,
+  Path,
+  Rectangle,
+  Text,
+  VBox,
+} from "scenerystack/scenery";
 import { createConstantPanel } from "./components/constants.js";
 import equationInput from "./components/equationInput.js";
+import post from "./components/postData.js";
+
 import {
   HSlider,
   Panel,
@@ -14,6 +24,9 @@ import {
   Vector2,
   Range,
   DerivedProperty,
+  Checkbox,
+  AquaRadioButton,
+  Shape,
 } from "scenerystack";
 import Chart3D, { updateChart3D } from "./components/3DAxes.js";
 import rk4 from "./components/rk4.ts";
@@ -73,6 +86,9 @@ export class SimScreenView extends ScreenView {
   setMagneticForceShow: any;
   setMagneticFieldParticleShow: any;
   setVelocityVectorShow: any;
+  updateChargeRangeFile: null;
+  private pendingCameraView: string | null = null;
+  private simulationFinished: boolean = false;
 
   // setMagneticFieldDisplayMode: (mode: import("/Users/sadra/Desktop/sceneryStack/Charge in Uniform Electric and Magnetic Fields/src/screen-name/view/components/3DAxesThreeJS").FieldDisplayMode) => void;
   // setElectricFieldDisplayMode: (mode: import("/Users/sadra/Desktop/sceneryStack/Charge in Uniform Electric and Magnetic Fields/src/screen-name/view/components/3DAxesThreeJS").FieldDisplayMode) => void;
@@ -81,6 +97,8 @@ export class SimScreenView extends ScreenView {
     super(options);
     this.model = model;
     this.layoutBounds.maxX = 1300;
+
+    post();
 
     const redBall = new Circle(7, { fill: "red" });
     const refText = new Text("Reference", { fontSize: 20, fill: "black" });
@@ -103,34 +121,33 @@ export class SimScreenView extends ScreenView {
     this.equationPanelBoxes = this.equationPanel["panel"];
     this.equationPanelBoxes.leftTop = new Vector2(
       0,
-      this.constantPanel.height + 65,
+      this.constantPanel.height + 5,
     );
     this.addChild(this.equationPanelBoxes);
 
     const graphDiv = document.createElement("div");
     graphDiv.id = "graphDiv";
     graphDiv.style.width = "750px";
-    graphDiv.style.height = "550px";
+    // graphDiv.style.height = "550px";
+    graphDiv.style.height = "450px";
+    // graphDiv.style.height = "50px";
     graphDiv.style.backgroundColor = "black";
     graphDiv.style.marginTop = "2rem";
     document.body.appendChild(graphDiv);
-    this.chart3D = new ThreeDGraph(750, 550);
+    // this.chart3D = new ThreeDGraph(750, 550);
+    this.chart3D = new ThreeDGraph(750, 450);
     this.updateParticle = this.chart3D.updateParticle.bind(this.chart3D);
     this.updateChartsRange = this.chart3D.updateRange.bind(this.chart3D);
-    this.electricForceVector = this.chart3D.electricForceVector.bind(
-      this.chart3D,
-    );
+
+    // this.electricForceVector = this.chart3D.electricForceVector.bind(
+    //   this.chart3D,
+    // );
     this.magneticForceVector = this.chart3D.magneticForceVector.bind(
       this.chart3D,
     );
     this.updateValues = this.chart3D.updateValues.bind(this.chart3D);
     this.updateRows = this.chart3D.updateRows.bind(this.chart3D);
-    this.showElectricForceVector = this.chart3D.showElectricForceVector.bind(
-      this.chart3D,
-    );
-    this.showMagneticForceVector = this.chart3D.showMagneticForceVector.bind(
-      this.chart3D,
-    );
+
     this.setElectricForceShow = this.chart3D.setElectricForceShow.bind(
       this.chart3D,
     );
@@ -147,6 +164,153 @@ export class SimScreenView extends ScreenView {
     this.setMagneticFieldParticleShow(false);
 
     this.setElectricForceShow(false);
+
+    const cameraViewProperty = new Property<string>("normal");
+    const normalViewRadio = new AquaRadioButton(
+      cameraViewProperty,
+      "normal",
+      new Text("Standard View", { fontSize: 16, fill: "black" }),
+      { radius: 8 },
+    );
+
+    const electricViewRadio = new AquaRadioButton(
+      cameraViewProperty,
+      "electric",
+      new Text("Electric Force View", { fontSize: 16, fill: "black" }),
+      { radius: 8 },
+    );
+
+    const magneticViewRadio = new AquaRadioButton(
+      cameraViewProperty,
+      "magnetic",
+      new Text("Magnetic Force View", { fontSize: 16, fill: "black" }),
+      { radius: 8 },
+    );
+
+    const cameraViewPanel = new Panel(
+      new VBox({
+        align: "left",
+        spacing: 12,
+        children: [
+          new Text("Camera View:", {
+            fontSize: 18,
+            fill: "black",
+            fontWeight: "bold",
+          }),
+          normalViewRadio,
+          electricViewRadio,
+          magneticViewRadio,
+        ],
+      }),
+      {
+        fill: "#d3d3d3",
+        stroke: "#888",
+        cornerRadius: 5,
+        scale: 0.9,
+        xMargin: 15,
+        yMargin: 10,
+      },
+    );
+
+    cameraViewPanel.leftTop = new Vector2(540, 500);
+
+    // Add to scene
+    this.addChild(cameraViewPanel);
+
+    cameraViewProperty.link((viewType: string) => {
+
+      if (this.simulationFinished){
+        this.pendingCameraView = viewType;
+        return;
+      }
+      this.chart3D.currentCameraView = viewType;
+      this.chart3D.setCameraView(viewType);
+      if (viewType === "normal") {
+        this.setElectricForceShow(true);
+        this.setMagneticForceShow(true);
+        this.setVelocityVectorShow(false);
+        this.setMagneticFieldParticleShow(false);
+      } else if (viewType === "electric") {
+        this.setElectricForceShow(true);
+        this.setVelocityVectorShow(true);
+        this.setMagneticForceShow(false);
+        this.setMagneticFieldParticleShow(false);
+      } else if (viewType === "magnetic") {
+        this.setMagneticForceShow(true);
+        this.setVelocityVectorShow(true);
+        this.setElectricForceShow(false);
+        this.setMagneticFieldParticleShow(true);
+      }
+    });
+
+    // Add this in SimScreenView.ts constructor, after the camera view panel
+
+    // Helper function to create arrow symbol using Path
+    function createArrowSymbol(color: string, length: number = 30): any {
+      const arrowBody = new Rectangle(0, -1.5, length - 8, 3, {
+        fill: color,
+        cornerRadius: 2,
+      });
+
+      const arrowHead = new Path(
+        new Shape().moveTo(0, 0).lineTo(-9, -8).lineTo(-9, 8).close(),
+        {
+          fill: color,
+        },
+      );
+
+      arrowHead.left = arrowBody.right;
+
+      const arrow = new HBox({
+        spacing: 0,
+        align: "center",
+        children: [arrowBody, arrowHead],
+      });
+
+      return arrow;
+    }
+
+    // Create vector legend items
+    const vectorLegendItems = [
+      { color: "black", label: "Velocity", symbol: "→" },
+      { color: "#63b5e4", label: "Magnetic Force", symbol: "→" },
+      { color: "#0072B2", label: "Magnetic Field", symbol: "→" },
+      { color: "#E69F00", label: "Electric Force", symbol: "→" },
+      { color: "#CC5500", label: "Electric Field", symbol: "→" },
+    ];
+
+    const legendChildren = vectorLegendItems.map((item) => {
+      return new HBox({
+        spacing: 10,
+        align: "center",
+        children: [
+          createArrowSymbol(item.color, 50),
+          new Text(item.label, { fontSize: 15, fill: "black" }),
+        ],
+      });
+    });
+
+    const vectorLegend = new Panel(
+      new VBox({
+        align: "left",
+        spacing: 8,
+        children: [
+          new Rectangle(0, 0, 180, 1, { fill: "white" }),
+          ...legendChildren,
+        ],
+      }),
+      {
+        fill: "white",
+        stroke: "white",
+        cornerRadius: 5,
+        xMargin: 12,
+        yMargin: 10,
+        scale: 0.75,
+      },
+    );
+
+    vectorLegend.leftTop = new Vector2(300, 500);
+    this.addChild(vectorLegend);
 
     // this.showElectricForceVector(false)
     const rowNumberSlider = new HSlider(
@@ -272,11 +436,13 @@ export class SimScreenView extends ScreenView {
       showElectricFieldVector,
       false,
       true,
+      { scale: 0.8 },
     );
     const MagneticFieldToggleBtn = new ToggleSwitch(
       showMagneticFieldVector,
       false,
       true,
+      { scale: 0.8 },
     );
 
     const mode1Btn = new ToggleSwitch(mode1, false, true);
@@ -284,8 +450,12 @@ export class SimScreenView extends ScreenView {
     const showElectricFieldVectorHBox = new HBox({
       align: "center",
       children: [
-        new Text("Show Electric Field", { fontSize: 20, fill: "black" }),
-        new Rectangle(0, 0, 100, 0),
+        new Text("Show Electric Field", {
+          fontSize: 20,
+          fill: "black",
+          scale: 0.8,
+        }),
+        new Rectangle(0, 0, 40, 0),
         ElectricFieldToggleBtn,
       ],
     });
@@ -294,36 +464,42 @@ export class SimScreenView extends ScreenView {
     const showMagneticFieldVectorHBox = new HBox({
       align: "center",
       children: [
-        new Text("Show Magnetic Field", { fontSize: 20, fill: "black" }),
-        new Rectangle(0, 0, 90, 0),
+        new Text("Show Magnetic Field", {
+          fontSize: 20,
+          fill: "black",
+          scale: 0.8,
+        }),
+        new Rectangle(0, 0, 30, 0),
         MagneticFieldToggleBtn,
       ],
     });
 
-    const modeHBox = new HBox({
-      align: "center",
-      children: [
-        new Text("Vector Display Mode", { fontSize: 20, fill: "black" }),
-        new Rectangle(0, 0, 70, 0),
-        mode1Btn,
-      ],
-    });
+    // const modeHBox = new HBox({
+    //   align: "center",
+    //   children: [
+    //     new Text("Vector Display Mode", { fontSize: 20, fill: "black" }),
+    //     new Rectangle(0, 0, 10, 0),
+    //     mode1Btn,
+    //   ],
+    // });
 
     const showVectorsPanel = new Panel(
       new VBox({
         align: "center",
         children: [
           showElectricFieldVectorHBox,
-          new Rectangle(0, 0, 0, 10),
+          // new Rectangle(0, 0, 0, 5),
           showMagneticFieldVectorHBox,
-          new Rectangle(0, 0, 0, 10),
-          modeHBox,
         ],
       }),
-      { fill: "#d3d3d3", maxWidth: 290, scale: 0.835 },
+      { fill: "#d3d3d3", scale: 0.75, minHeight: 70, minWidth: 320 },
     );
     showVectorsPanel.leftTop = new Vector2(0, this.constantPanel.height + 5);
     this.addChild(showVectorsPanel);
+    this.equationPanelBoxes.leftTop = new Vector2(
+      0,
+      showVectorsPanel.bottom + 5,
+    );
 
     showElectricFieldVector.link((show: boolean) => {
       this.chart3D.toggleElectricField(show);
@@ -350,19 +526,19 @@ export class SimScreenView extends ScreenView {
       );
     });
 
-    mode1.link((mode: boolean) => {
-      if (mode) {
-        this.setMagneticFieldParticleShow(true);
-        this.setMagneticForceShow(true);
-        this.setVelocityVectorShow(true);
-        this.setElectricForceShow(false);
-      } else {
-        this.setMagneticFieldParticleShow(false);
-        this.setVelocityVectorShow(false);
-        this.setElectricForceShow(true);
-        this.setMagneticForceShow(true);
-      }
-    });
+    // mode1.link((mode: boolean) => {
+    //   if (mode) {
+    //     this.setMagneticFieldParticleShow(true);
+    //     this.setMagneticForceShow(true);
+    //     this.setVelocityVectorShow(true);
+    //     this.setElectricForceShow(false);
+    //   } else {
+    //     this.setMagneticFieldParticleShow(false);
+    //     this.setVelocityVectorShow(false);
+    //     this.setElectricForceShow(true);
+    //     this.setMagneticForceShow(true);
+    //   }
+    // });
 
     const xvelocityGraph = document.createElement("div");
     xvelocityGraph.style.width = "300px";
@@ -458,9 +634,6 @@ export class SimScreenView extends ScreenView {
 
   public reset(): void {
     // this.resetTrail();
-    this.equationPanel.vdotxInput.updatePropertyFromField();
-    this.equationPanel.vdotyInput.updatePropertyFromField();
-    this.equationPanel.vdotzInput.updatePropertyFromField();
 
     this.x1 = 0;
     this.y1 = 0;
@@ -481,6 +654,56 @@ export class SimScreenView extends ScreenView {
     this.trailYTest = [];
     this.trailZTest = [];
     this.time = 0;
+    this.model.qproperty.value = this.model.q;
+    this.model.massProperty.value = this.model.mass;
+    this.model.e0xProperty.value = this.model.e0x;
+    this.model.e0yProperty.value = this.model.e0y;
+    this.model.e0zProperty.value = this.model.e0z;
+    this.model.b0xProperty.value = this.model.b0x;
+    this.model.b0yProperty.value = this.model.b0y;
+    this.model.b0zProperty.value = this.model.b0z;
+    this.model.v0xProperty.value = this.model.v0x;
+    this.model.v0yProperty.value = this.model.v0y;
+    this.model.v0zProperty.value = this.model.v0z;
+    // this.equationPanel.vdotxInput.updatePropertyFromField(
+    //   this.model.q,
+    //   this.model.mass,
+    //   this.model.e0x,
+    //   this.model.e0y,
+    //   this.model.e0z,
+    //   this.model.b0x,
+    //   this.model.b0y,
+    //   this.model.b0z,
+    //   this.model.v0x,
+    //   this.model.v0y,
+    //   this.model.v0z,
+    // );
+    // this.equationPanel.vdotyInput.updatePropertyFromField(
+    //   this.model.q,
+    //   this.model.mass,
+    //   this.model.e0x,
+    //   this.model.e0y,
+    //   this.model.e0z,
+    //   this.model.b0x,
+    //   this.model.b0y,
+    //   this.model.b0z,
+    //   this.model.v0x,
+    //   this.model.v0y,
+    //   this.model.v0z,
+    // );
+    // this.equationPanel.vdotzInput.updatePropertyFromField(
+    //   this.model.q,
+    //   this.model.mass,
+    //   this.model.e0x,
+    //   this.model.e0y,
+    //   this.model.e0z,
+    //   this.model.b0x,
+    //   this.model.b0y,
+    //   this.model.b0z,
+    //   this.model.v0x,
+    //   this.model.v0y,
+    //   this.model.v0z,
+    // );
     this.xvelocityGraph.resetGraph();
     this.yvelocityGraph.resetGraph();
     this.zvelocityGraph.resetGraph();
@@ -559,6 +782,32 @@ export class SimScreenView extends ScreenView {
     // this.chart3D.addEventListener("pointerup", () => {
     //   this.userInteracting = false;
     // });
+
+    this.simulationFinished = false;
+    if (this.pendingCameraView !== null) {
+      const viewType = this.pendingCameraView;
+      this.pendingCameraView = null; // Clear the pending change
+      
+      this.chart3D.currentCameraView = viewType;
+      this.chart3D.setCameraView(viewType);
+      
+      if (viewType === "normal") {
+        this.setElectricForceShow(true);
+        this.setMagneticForceShow(true);
+        this.setVelocityVectorShow(false);
+        this.setMagneticFieldParticleShow(false);
+      } else if (viewType === "electric") {
+        this.setElectricForceShow(true);
+        this.setVelocityVectorShow(true);
+        this.setMagneticForceShow(false);
+        this.setMagneticFieldParticleShow(false);
+      } else if (viewType === "magnetic") {
+        this.setMagneticForceShow(true);
+        this.setVelocityVectorShow(true);
+        this.setElectricForceShow(false);
+        this.setMagneticFieldParticleShow(true);
+      }
+    }
 
     this.run = true;
   }
@@ -679,6 +928,9 @@ export class SimScreenView extends ScreenView {
 
       this.updateGraphs();
       this.time += 0.001 * this.model.simSpeed;
+    } else{
+      this.run = false;
+      this.simulationFinished = true;
     }
   }
 

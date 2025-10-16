@@ -60,17 +60,17 @@ export default class EquationInput extends DOM {
             | "\\v0z";
 
           const variableMap: Record<string, number> = {
-            q: model.q,
-            m: model.mass,
-            "\\E_x": model.e0x,
-            "\\E_y": model.e0y,
-            "\\E_z": model.e0z,
-            "\\B_x": model.b0x,
-            "\\B_y": model.b0y,
-            "\\B_z": model.b0z,
-            "\\v0x": model.v0x,
-            "\\v0y": model.v0y,
-            "\\v0z": model.v0z,
+            q: model.qproperty.value,
+            m: model.massProperty.value,
+            "\\E_x": model.e0xProperty.value,
+            "\\E_y": model.e0yProperty.value,
+            "\\E_z": model.e0zProperty.value,
+            "\\B_x": model.b0xProperty.value,
+            "\\B_y": model.b0yProperty.value,
+            "\\B_z": model.b0zProperty.value,
+            "\\v0x": model.v0xProperty.value,
+            "\\v0y": model.v0yProperty.value,
+            "\\v0z": model.v0zProperty.value,
           };
           // console.log(variableMap);
 
@@ -101,6 +101,7 @@ export default class EquationInput extends DOM {
       this.updateText(this.property.value);
     }
   }
+  
 
   updateText(newLatex: any) {
     if (this.mathField) {
@@ -110,22 +111,34 @@ export default class EquationInput extends DOM {
     }
   }
 
-  updatePropertyFromField() {
+  updatePropertyFromField(q, m, ex, ey, ez, bx, by, bz, vx, vy, vz) {
     const latex = this.mathField.latex().trim();
     const variableMap = {
-      "\\v_x": this.model.v0x,
-      "\\v_y": this.model.v0y,
-      "\\v_z": this.model.v0z,
-      q: this.model.q,
-      m: this.model.mass,
-      "\\E_x": this.model.e0x,
-      "\\E_y": this.model.e0y,
-      "\\E_z": this.model.e0z,
-      "\\B_x": this.model.b0x,
-      "\\B_y": this.model.b0y,
-      "\\B_z": this.model.b0z,
+      "\\v_x": vx,
+      "\\v_y": vy,
+      "\\v_z": vz,
+      q: q,
+      m: m,
+      "\\E_x": ex,
+      "\\E_y": ey,
+      "\\E_z": ez,
+      "\\B_x": bx,
+      "\\B_y": by,
+      "\\B_z": bz,
+      // "\\v_x": this.model.v0x,
+      // "\\v_y": this.model.v0y,
+      // "\\v_z": this.model.v0z,
+      // q: this.model.q,
+      // m: this.model.mass,
+      // "\\E_x": this.model.e0x,
+      // "\\E_y": this.model.e0y,
+      // "\\E_z": this.model.e0z,
+      // "\\B_x": this.model.b0x,
+      // "\\B_y": this.model.b0y,
+      // "\\B_z": this.model.b0z,
      
     };
+ 
     type VariableKey =
       | "\\v_x"
       | "\\v_y"
