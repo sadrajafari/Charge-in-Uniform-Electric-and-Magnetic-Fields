@@ -9,13 +9,15 @@ import {
   ResetAllButton,
   RoundToggleButton,
   Text,
-  DerivedProperty
+  DerivedProperty,
+  RectangularPushButton
 } from "scenerystack";
 import { SimModel } from "../../model/SimModel";
 
 export default function createComponent(
   model: SimModel,
-  resetButton: ResetAllButton,
+  resetButton: RectangularPushButton,
+  resumePauseButton: RectangularPushButton,
 ) {
   const simSpeedText = new Text("simSpeed", { fontSize: 18 });
   const simSpeed = new HSlider(
@@ -48,6 +50,8 @@ export default function createComponent(
         speedPrompt,
         new Rectangle(0, 0, 40, 10),
         resetButton,
+        new Rectangle(0, 0, 10, 0),
+        resumePauseButton,
       ],
     }),
     { fill: new Color("#d3d3d3"), maxWidth: 283, scale: 0.85, minWidth: 260 },

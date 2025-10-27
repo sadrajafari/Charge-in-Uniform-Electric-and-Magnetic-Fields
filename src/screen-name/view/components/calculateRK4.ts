@@ -23,8 +23,9 @@ export default function calculateRK4(
   let x = 0;
   let y = 0;
   let z = 0;
-
+  
   const results = {
+    t: [] as number[],
     x: [] as number[],
     y: [] as number[],
     z: [] as number[],
@@ -32,7 +33,6 @@ export default function calculateRK4(
     vy: [] as number[],
     vz: [] as number[],
   };
-
 
   if (test) {
     // console.log("q:", q, "m:", m, "Ex:", Ex, "Ey:", Ey, "Ez:", Ez, "Bx:", Bx, "By:", By, "Bz:", Bz, "vx:", vx, "vy:", vy, "vz:", vz);
@@ -54,6 +54,7 @@ export default function calculateRK4(
       By,
       Bz,
     );
+    results.t.push(t);
     results.x.push(x);
     results.y.push(y);
     results.z.push(z);
@@ -67,4 +68,3 @@ export default function calculateRK4(
 
   return results;
 }
-

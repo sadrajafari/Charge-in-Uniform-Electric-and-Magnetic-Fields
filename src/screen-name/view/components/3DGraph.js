@@ -32,7 +32,7 @@ import {
   updateTrail,
   velocityVectorArrow,
   setCameraView,
-  createAxisEndLabels
+  createAxisEndLabels,
 } from "./3DgraphIndex.js";
 // Three.js 3D Graph with Particle Motion
 export default class ThreeDGraph {
@@ -74,9 +74,10 @@ export default class ThreeDGraph {
     this.showMagneticForce = true;
     this.visibleVelocityVector = true;
     this.visibleMagneticFieldParticle = true;
-    this.currentCameraView = 'normal'; // Track current view mode
+    this.currentCameraView = "normal"; // Track current view mode
 
     this.init();
+    
     // this.updateRange();
     createGraph(this);
     // this.createParticle();
@@ -96,6 +97,7 @@ export default class ThreeDGraph {
 
   init() {
     init(this);
+    
   }
 
   setCameraOrthogonalToElectricField(Ex, Ey, Ez, x, y, z) {
@@ -184,8 +186,6 @@ export default class ThreeDGraph {
     setCameraView(this, viewType, x, y, z);
   }
 
-  
-
   updateParticle(x, y, z, vx, vy, vz) {
     this.updateMagneticForceVector(
       this.q,
@@ -202,12 +202,25 @@ export default class ThreeDGraph {
     showVelocityVector(this, this.visibleVelocityVector);
     showMagneticFieldOnParticleVector(this, this.visibleMagneticFieldParticle);
 
-
-    if (this.currentCameraView === "electric"){
-      this.setCameraOrthogonalToElectricField(this.Ex, this.Ey, this.Ez, x, y, z);
-    } else if(this.currentCameraView === "magnetic"){
-      this.setCameraOrthogonalToMagneticField(this.Bx, this.By, this.Bz, x, y, z);
-    } 
+    if (this.currentCameraView === "electric") {
+      this.setCameraOrthogonalToElectricField(
+        this.Ex,
+        this.Ey,
+        this.Ez,
+        x,
+        y,
+        z,
+      );
+    } else if (this.currentCameraView === "magnetic") {
+      this.setCameraOrthogonalToMagneticField(
+        this.Bx,
+        this.By,
+        this.Bz,
+        x,
+        y,
+        z,
+      );
+    }
     // else {
     //   // this.setCameraView("normal");
     //   this.camera.position.set(14, 10, -15);
@@ -434,6 +447,74 @@ export default class ThreeDGraph {
 
   updateTestParticle(x, y, z, vx, vy, vz) {
     updateTestParticle(this, x, y, z, vx, vy, vz);
+  }
+
+  // setTestVectorsVisible(
+  //   showElectric,
+  //   showMagnetic,
+  //   showVelocity,
+  //   showMagneticField,
+  // ) {
+  //   // Remove test particle vectors if they should be hidden
+  //   if (!showElectric && this.testElectricForceField) {
+  //     this.group.remove(this.testElectricForceField);
+  //     this.testElectricForceField = null;
+  //   }
+  //   if (!showMagnetic && this.testMagneticForceField) {
+  //     this.group.remove(this.testMagneticForceField);
+  //     this.testMagneticForceField = null;
+  //   }
+  //   if (!showVelocity && this.testVelocityArrow) {
+  //     this.group.remove(this.testVelocityArrow);
+  //     this.testVelocityArrow = null;
+  //   }
+  //   if (!showMagneticField && this.testMagneticFieldOnParticleArrow) {
+  //     this.group.remove(this.testMagneticFieldOnParticleArrow);
+  //     this.testMagneticFieldOnParticleArrow = null;
+  //   }
+
+  //   this.renderer.render(this.scene, this.camera);
+  // }
+
+  removeTestParticle() {
+    // Remove test particle
+    if (this.testParticle) {
+      this.group.remove(this.testParticle);
+      this.testParticle = null;
+    }
+
+    // Remove test particle trail
+    if (this.testTrailMesh) {
+      this.group.remove(this.testTrailMesh);
+      this.testTrailMesh = null;
+    }
+    if (this.testTrail) {
+      this.testTrail = [];
+    }
+
+    // ✅ Remove ALL test particle vectors
+    if (this.testVelocityArrow) {
+      this.group.remove(this.testVelocityArrow);
+      this.testVelocityArrow = null;
+    }
+
+    if (this.testElectricForceField) {
+      this.group.remove(this.testElectricForceField);
+      this.testElectricForceField = null;
+    }
+
+    if (this.testMagneticForceField) {
+      this.group.remove(this.testMagneticForceField);
+      this.testMagneticForceField = null;
+    }
+
+    if (this.testMagneticFieldOnParticleArrow) {
+      this.group.remove(this.testMagneticFieldOnParticleArrow);
+      this.testMagneticFieldOnParticleArrow = null;
+    }
+
+    // Re-render
+    this.renderer.render(this.scene, this.camera);
   }
 
   animate() {

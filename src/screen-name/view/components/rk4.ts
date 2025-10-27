@@ -40,7 +40,8 @@ const vdotz = (
 };
 
 const evaluateFunction = (
-  equation: string,
+  compiledOrEquation: any,
+  // equation: string,
   q: number,
   m: number,
 
@@ -56,19 +57,30 @@ const evaluateFunction = (
   vy: number,
   vz: number,
 ) => {
+  const compiled =
+    typeof compiledOrEquation === "string"
+      ? // @ts-ignore
+        evaluatex(compiledOrEquation, { latex: true })
+      : compiledOrEquation;
   // @ts-ignore
-  return evaluatex(equation, { latex: true })({
-    q,
-    m,
-    E_x: Ex,
-    E_y: Ey,
-    E_z: Ez,
-    B_x: Bx,
-    B_y: By,
-    B_z: Bz,
-    v_x: vx,
-    v_y: vy,
-    v_z: vz,
+  // return evaluatex(equation, { latex: true })({
+  //   q,
+  //   m,
+  //   E_x: Ex,
+  //   E_y: Ey,
+  //   E_z: Ez,
+  //   B_x: Bx,
+  //   B_y: By,
+  //   B_z: Bz,
+  //   v_x: vx,
+  //   v_y: vy,
+  //   v_z: vz,
+  // });
+  return compiled({
+    q, m,
+    E_x: Ex, E_y: Ey, E_z: Ez,
+    B_x: Bx, B_y: By, B_z: Bz,
+    v_x: vx, v_y: vy, v_z: vz,
   });
 };
 
@@ -98,6 +110,7 @@ const derive = (
       evaluateFunction(xdot, q, m, Ex, Ey, Ez, Bx, By, Bz, vx, vy, vz),
       evaluateFunction(ydot, q, m, Ex, Ey, Ez, Bx, By, Bz, vx, vy, vz),
       evaluateFunction(zdot, q, m, Ex, Ey, Ez, Bx, By, Bz, vx, vy, vz),
+      
     ];
   } else {
     return [

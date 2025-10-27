@@ -17,7 +17,7 @@ import { SimModel } from "../../model/SimModel";
 // const model = new SimModel();
 
 export function createConstantPanel(model: SimModel) {
-  const qSlider = new HSlider(model.qproperty, new Range(-5, 5), {
+  const qSlider = new HSlider(model.qproperty, new Range(-2, 2), {
     scale: 0.6,
   });
 

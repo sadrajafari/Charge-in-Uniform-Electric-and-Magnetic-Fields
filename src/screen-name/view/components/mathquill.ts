@@ -46,52 +46,53 @@ export default class EquationInput extends DOM {
           mathDiv.style.backgroundColor = "white";
 
           // Define variable substitutions
-          type VariableKey =
-            | "q"
-            | "m"
-            | "\\E_x"
-            | "\\E_y"
-            | "\\E_z"
-            | "\\B_x"
-            | "\\B_y"
-            | "\\B_z"
-            | "\\v0x"
-            | "\\v0y"
-            | "\\v0z";
+          // type VariableKey =
+          //   | "q"
+          //   | "m"
+          //   | "\\E_x"
+          //   | "\\E_y"
+          //   | "\\E_z"
+          //   | "\\B_x"
+          //   | "\\B_y"
+          //   | "\\B_z"
+          //   | "\\v0x"
+          //   | "\\v0y"
+          //   | "\\v0z";
 
-          const variableMap: Record<string, number> = {
-            q: model.qproperty.value,
-            m: model.massProperty.value,
-            "\\E_x": model.e0xProperty.value,
-            "\\E_y": model.e0yProperty.value,
-            "\\E_z": model.e0zProperty.value,
-            "\\B_x": model.b0xProperty.value,
-            "\\B_y": model.b0yProperty.value,
-            "\\B_z": model.b0zProperty.value,
-            "\\v0x": model.v0xProperty.value,
-            "\\v0y": model.v0yProperty.value,
-            "\\v0z": model.v0zProperty.value,
-          };
-          // console.log(variableMap);
+          // const variableMap: Record<string, number> = {
+          //   q: model.qproperty.value,
+          //   m: model.massProperty.value,
+          //   "\\E_x": model.e0xProperty.value,
+          //   "\\E_y": model.e0yProperty.value,
+          //   "\\E_z": model.e0zProperty.value,
+          //   "\\B_x": model.b0xProperty.value,
+          //   "\\B_y": model.b0yProperty.value,
+          //   "\\B_z": model.b0zProperty.value,
+          //   "\\v0x": model.v0xProperty.value,
+          //   "\\v0y": model.v0yProperty.value,
+          //   "\\v0z": model.v0zProperty.value,
+          // };
+          // // console.log(variableMap);
 
-          // Sort longer keys first to avoid premature replacements
-          const sortedKeys = Object.keys(variableMap).sort(
-            (a, b) => b.length - a.length,
-          ) as VariableKey[];
+          // // Sort longer keys first to avoid premature replacements
+          // const sortedKeys = Object.keys(variableMap).sort(
+          //   (a, b) => b.length - a.length,
+          // ) as VariableKey[];
 
-          let parsedLatex = latex;
-          for (const key of sortedKeys) {
-            const value = variableMap[key];
-            // Escape backslashes
-            const escapedKey = key.replace(/\\/g, "\\\\");
-            // Match only exact expressions (not part of another command)
-            const regex = new RegExp(escapedKey + "(?![a-zA-Z_0-9])", "g");
-            parsedLatex = parsedLatex.replace(regex, value.toString());
-            // console.log(parsedLatex)
-          }
+          // let parsedLatex = latex;
+          // for (const key of sortedKeys) {
+          //   const value = variableMap[key];
+          //   // Escape backslashes
+          //   const escapedKey = key.replace(/\\/g, "\\\\");
+          //   // Match only exact expressions (not part of another command)
+          //   const regex = new RegExp(escapedKey + "(?![a-zA-Z_0-9])", "g");
+          //   parsedLatex = parsedLatex.replace(regex, value.toString());
+          //   // console.log(parsedLatex)
+          // }
 
           if (property && property.value !== undefined) {
-            property.value = parsedLatex;
+            // property.value = parsedLatex;
+            property.value = latex;
           }
         },
       },

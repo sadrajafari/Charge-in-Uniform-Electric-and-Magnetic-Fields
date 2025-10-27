@@ -1,6 +1,16 @@
 import { Property } from "scenerystack";
 import calculateRK4 from "../view/components/calculateRK4.ts";
 
+type TrajectoryData = {
+  t: number[];
+  x: number[];
+  y: number[];
+  z: number[];
+  vx: number[];
+  vy: number[];
+  vz: number[];
+};
+
 export class SimModel {
   public qproperty: Property<number> = new Property(1);
   public massProperty: Property<number> = new Property(1);
@@ -39,6 +49,26 @@ export class SimModel {
 
   public simSpeedProperty: Property<number> = new Property(1);
   public rowNumberProperty: Property<number> = new Property(3);
+  public referenceRecordsProperty: Property<TrajectoryData> = new Property({
+    t: [] as number[],
+    x: [] as number[],
+    y: [] as number[],
+    z: [] as number[],
+    vx: [] as number[],
+    vy: [] as number[],
+    vz: [] as number[],
+  });
+  public testRecordsProperty: Property<TrajectoryData> = new Property({
+    t: [] as number[],
+    x: [] as number[],
+    y: [] as number[],
+    z: [] as number[],
+    vx: [] as number[],
+    vy: [] as number[],
+    vz: [] as number[],
+  });
+
+
 
   q: number;
   mass: number;
@@ -66,6 +96,27 @@ export class SimModel {
   hasTest: boolean = false;
   rowNumber: number = 3;
   updateRows: any;
+  referenceRecords: TrajectoryData = {
+    t: [],
+    x: [],
+    y: [],
+    z: [],
+    vx: [],
+    vy: [],
+    vz: [],
+  };
+  testRecords: TrajectoryData = {
+    t: [],
+    x: [],
+    y: [],
+    z: [],
+    vx: [],
+    vy: [],
+    vz: [],
+  };
+  compiledVdotx: any;
+  compiledVdoty: any;
+  compiledVdotz: any;
 
   constructor() {
     this.q = this.qproperty.value;
@@ -90,6 +141,11 @@ export class SimModel {
     this.numberOfSurfaces = this.numberOfSurfacesProperty.value;
     this.hasTest = this.hasTestProperty.value;
     this.rowNumber = this.rowNumberProperty.value;
+    this.referenceRecords = this.referenceRecordsProperty.value;
+    this.testRecords = this.testRecordsProperty.value;
+    this.compiledVdotx = this.compiledVdotx;;
+    this.compiledVdoty = this.compiledVdoty;
+    this.compiledVdotz = this.compiledVdotz;
 
     this.simSpeedProperty.lazyLink(() => {
       this.simSpeed = this.simSpeedProperty.value;
@@ -102,8 +158,6 @@ export class SimModel {
     this.numberOfSurfacesProperty.lazyLink(() => {
       this.numberOfSurfaces = this.numberOfSurfacesProperty.value;
     });
-    
-    
   }
   public reset(): void {
     // Called when the user presses the reset-all button
@@ -133,12 +187,22 @@ export class SimModel {
       this.hasTest = false;
     }
 
+    if (this.hasTest) {
+      // @ts-ignore
+      this.compiledVdotx = evaluatex(this.vdotx, { latex: true })
+      // @ts-ignore
+      this.compiledVdoty = evaluatex(this.vdoty, { latex: true })
+      // @ts-ignore
+      this.compiledVdotz = evaluatex(this.vdotz, { latex: true })
+      
+    }
+
     const values = calculateRK4(
       false,
       "",
       "",
       "",
-      0.01,
+      0.0001,
       this.qproperty.value,
       this.massProperty.value,
       this.e0xProperty.value,
@@ -152,13 +216,18 @@ export class SimModel {
       this.v0zProperty.value,
     );
 
+    this.referenceRecordsProperty.value = values;
+
     if (this.hasTest) {
       const testValues = calculateRK4(
         true,
-        this.vdotx,
-        this.vdoty,
-        this.vdotz,
-        0.01,
+        // this.vdotx,
+        // this.vdoty,
+        // this.vdotz,
+        this.compiledVdotx,
+        this.compiledVdoty,
+        this.compiledVdotz,
+        0.0001,
         this.qproperty.value,
         this.massProperty.value,
         this.e0xProperty.value,
@@ -171,6 +240,7 @@ export class SimModel {
         this.v0yProperty.value,
         this.v0zProperty.value,
       );
+      this.testRecordsProperty.value = testValues;
       // console.log("heloo  ")
       // console.log(values, testValues);
       this.Xrange = [

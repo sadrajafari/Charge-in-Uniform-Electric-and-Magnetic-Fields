@@ -38,4 +38,6 @@ export default function init(material) {
   material.group.rotation.x = (3 * Math.PI) / 2;
 
   material.group.position.set(3, 1, 1);
+
+  
 }

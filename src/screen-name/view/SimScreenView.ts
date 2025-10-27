@@ -27,6 +27,7 @@ import {
   Checkbox,
   AquaRadioButton,
   Shape,
+  RectangularPushButton,
 } from "scenerystack";
 import Chart3D, { updateChart3D } from "./components/3DAxes.js";
 import rk4 from "./components/rk4.ts";
@@ -86,9 +87,25 @@ export class SimScreenView extends ScreenView {
   setMagneticForceShow: any;
   setMagneticFieldParticleShow: any;
   setVelocityVectorShow: any;
+  playPause: Property<boolean> = new Property(false);
+  simPaused: Property<boolean> = new Property(false);
   updateChargeRangeFile: null;
   private pendingCameraView: string | null = null;
   private simulationFinished: boolean = false;
+  private pauseSim: Property<boolean> = new Property(false);
+  private handleTestParticleRemoval(): void {
+    // Remove test particle and all its vectors
+    (this.chart3D as any).removeTestParticle();
+
+    // Reset test particle flags
+    this.hasTest = false;
+    this.x1Test = 0;
+    this.y1Test = 0;
+    this.z1Test = 0;
+    this.vx1Test = 0;
+    this.vy1Test = 0;
+    this.vz1Test = 0;
+  }
 
   // setMagneticFieldDisplayMode: (mode: import("/Users/sadra/Desktop/sceneryStack/Charge in Uniform Electric and Magnetic Fields/src/screen-name/view/components/3DAxesThreeJS").FieldDisplayMode) => void;
   // setElectricFieldDisplayMode: (mode: import("/Users/sadra/Desktop/sceneryStack/Charge in Uniform Electric and Magnetic Fields/src/screen-name/view/components/3DAxesThreeJS").FieldDisplayMode) => void;
@@ -218,8 +235,7 @@ export class SimScreenView extends ScreenView {
     this.addChild(cameraViewPanel);
 
     cameraViewProperty.link((viewType: string) => {
-
-      if (this.simulationFinished){
+      if (this.simulationFinished || this.playPause.value === false) {
         this.pendingCameraView = viewType;
         return;
       }
@@ -245,38 +261,78 @@ export class SimScreenView extends ScreenView {
 
     // Add this in SimScreenView.ts constructor, after the camera view panel
 
-    // Helper function to create arrow symbol using Path
-    function createArrowSymbol(color: string, length: number = 30): any {
-      const arrowBody = new Rectangle(0, -1.5, length - 8, 3, {
-        fill: color,
-        cornerRadius: 2,
-      });
+    // Helper function to create arrow symbol using Path (updated to support dashed)
+    function createArrowSymbol(
+      color: string,
+      length: number = 30,
+      dashed: boolean = false,
+    ): any {
+      if (dashed) {
+        // Create dashed arrow using multiple small rectangles
+        const dashLength = 4;
+        const gapLength = 1;
+        const totalSegments = Math.floor(
+          (length - 8) / (dashLength + gapLength),
+        );
 
-      const arrowHead = new Path(
-        new Shape().moveTo(0, 0).lineTo(-9, -8).lineTo(-9, 8).close(),
-        {
+        const dashElements = [];
+        for (let i = 0; i < 11; i++) {
+          const dash = new Rectangle(0, 1.5, dashLength, 5, {
+            fill: i % 2 === 0 ? color : "transparent",
+            cornerRadius: 1,
+          });
+          dashElements.push(dash);
+        }
+
+        const arrowHead = new Path(
+          new Shape().moveTo(0, 0).lineTo(-9, -8).lineTo(-9, 8).close(),
+          {
+            fill: color,
+          },
+        );
+
+        arrowHead.left = length - 8;
+
+        const arrow = new HBox({
+          spacing: 0,
+          align: "center",
+          children: [...dashElements, arrowHead],
+        });
+
+        return arrow;
+      } else {
+        // Original solid arrow
+        const arrowBody = new Rectangle(0, -1.5, length - 8, 3, {
           fill: color,
-        },
-      );
+          cornerRadius: 2,
+        });
 
-      arrowHead.left = arrowBody.right;
+        const arrowHead = new Path(
+          new Shape().moveTo(0, 0).lineTo(-9, -8).lineTo(-9, 8).close(),
+          {
+            fill: color,
+          },
+        );
 
-      const arrow = new HBox({
-        spacing: 0,
-        align: "center",
-        children: [arrowBody, arrowHead],
-      });
+        arrowHead.left = arrowBody.right;
 
-      return arrow;
+        const arrow = new HBox({
+          spacing: 0,
+          align: "center",
+          children: [arrowBody, arrowHead],
+        });
+
+        return arrow;
+      }
     }
 
-    // Create vector legend items
+    // Update vector legend items to include dashed property
     const vectorLegendItems = [
-      { color: "black", label: "Velocity", symbol: "→" },
-      { color: "#63b5e4", label: "Magnetic Force", symbol: "→" },
-      { color: "#0072B2", label: "Magnetic Field", symbol: "→" },
-      { color: "#E69F00", label: "Electric Force", symbol: "→" },
-      { color: "#CC5500", label: "Electric Field", symbol: "→" },
+      { color: "#0072B2", label: "Magnetic Field", symbol: "→", dashed: false }, // ✅ Make this dashed
+      { color: "#0072B2", label: "Magnetic Force", symbol: "→", dashed: true },
+      { color: "#CC5500", label: "Electric Field", symbol: "→", dashed: false },
+      { color: "#CC5500", label: "Electric Force", symbol: "→", dashed: true },
+      { color: "black", label: "Velocity", symbol: "→", dashed: false },
     ];
 
     const legendChildren = vectorLegendItems.map((item) => {
@@ -284,7 +340,7 @@ export class SimScreenView extends ScreenView {
         spacing: 10,
         align: "center",
         children: [
-          createArrowSymbol(item.color, 50),
+          createArrowSymbol(item.color, 50, item.dashed), // ✅ Pass dashed parameter
           new Text(item.label, { fontSize: 15, fill: "black" }),
         ],
       });
@@ -430,7 +486,6 @@ export class SimScreenView extends ScreenView {
 
     const showElectricFieldVector = new Property<boolean>(true);
     const showMagneticFieldVector = new Property<boolean>(true);
-    const mode1 = new Property<boolean>(true);
 
     const ElectricFieldToggleBtn = new ToggleSwitch(
       showElectricFieldVector,
@@ -445,7 +500,47 @@ export class SimScreenView extends ScreenView {
       { scale: 0.8 },
     );
 
-    const mode1Btn = new ToggleSwitch(mode1, false, true);
+    const playPauseLabel = new Text("▶", {
+      fontSize: 30,
+      fill: "black",
+      scale: 0.8,
+    });
+    const playPauseBtn = new RectangularPushButton({
+      content: playPauseLabel,
+      baseColor: "red",
+      minWidth: 40,
+      minHeight: 40,
+      xMargin: 5,
+      yMargin: 5,
+      listener: () => {
+        const newPlayState = !this.playPause.value;
+        this.playPause.value = newPlayState;
+        //   console.log(newPlayState)
+        //   if (newPlayState) {
+        //     this.simPaused.value = false;
+        //   } else {
+        //     this.simPaused.value = true;
+        //     this.flushPendingCameraView();
+
+        //   }
+      },
+    });
+
+    playPauseBtn.leftTop = new Vector2(700, 20);
+    this.playPause.link((play: boolean) => {
+      this.playPause.value = play;
+      playPauseLabel.string = play ? "⏸" : "▶";
+      playPauseBtn.baseColor = play ? "#27BEF5" : "red";
+      this.playPause.value = play;
+      // console.log(this.playPause.value)
+      if (this.playPause.value === true){
+        this.flushPendingCameraView();
+      }
+      // if (this.playPause.value === false && this.simulationFinished) {
+      //   this.reset();
+      //   this.model.reset();
+      // }
+    });
 
     const showElectricFieldVectorHBox = new HBox({
       align: "center",
@@ -614,17 +709,24 @@ export class SimScreenView extends ScreenView {
     // zvelocityGraphNode.leftTop = new Vector2(this.domElement.width + 250, 370);
     zvelocityGraphNode.leftTop = new Vector2(1000, 370);
     this.addChild(zvelocityGraphNode);
-    const resetAllButton = new ResetAllButton({
+    // const resetAllButton = new ResetAllButton({
+    const resetAllButton = new RectangularPushButton({
+      content: new Text("⏮", { fontSize: 20, fill: "black" }),
       listener: () => {
         this.interruptSubtreeInput();
         model.reset();
         this.reset();
+        this.playPause.value = true;
       },
+      minWidth: 40,
+      minHeight: 40,
       right: this.layoutBounds.maxX - 10,
       bottom: this.layoutBounds.maxY - 10,
     });
     // this.addChild(resetAllButton);
-    const component = createComponent(model, resetAllButton);
+    // resetAllButton.baseColor = "red";
+
+    const component = createComponent(model, resetAllButton, playPauseBtn);
     component.leftTop = new Vector2(0, this.equationPanelBoxes.bottom + 5);
     this.addChild(component);
 
@@ -709,6 +811,14 @@ export class SimScreenView extends ScreenView {
     this.zvelocityGraph.resetGraph();
 
     if (
+      this.model.vdotx === "" ||
+      this.model.vdoty === "" ||
+      this.model.vdotz === ""
+    ) {
+      this.handleTestParticleRemoval();
+    }
+
+    if (
       this.model.vdotx !== "" &&
       this.model.vdoty !== "" &&
       this.model.vdotz !== ""
@@ -784,32 +894,64 @@ export class SimScreenView extends ScreenView {
     // });
 
     this.simulationFinished = false;
-    if (this.pendingCameraView !== null) {
-      const viewType = this.pendingCameraView;
-      this.pendingCameraView = null; // Clear the pending change
-      
-      this.chart3D.currentCameraView = viewType;
-      this.chart3D.setCameraView(viewType);
-      
-      if (viewType === "normal") {
-        this.setElectricForceShow(true);
-        this.setMagneticForceShow(true);
-        this.setVelocityVectorShow(false);
-        this.setMagneticFieldParticleShow(false);
-      } else if (viewType === "electric") {
-        this.setElectricForceShow(true);
-        this.setVelocityVectorShow(true);
-        this.setMagneticForceShow(false);
-        this.setMagneticFieldParticleShow(false);
-      } else if (viewType === "magnetic") {
-        this.setMagneticForceShow(true);
-        this.setVelocityVectorShow(true);
-        this.setElectricForceShow(false);
-        this.setMagneticFieldParticleShow(true);
-      }
-    }
+    this.playPause.value = false;
+    this.flushPendingCameraView();
+    // if (this.pendingCameraView !== null) {
+    //   const viewType = this.pendingCameraView;
+    //   this.pendingCameraView = null; // Clear the pending change
+
+    //   this.chart3D.currentCameraView = viewType;
+    //   this.chart3D.setCameraView(viewType);
+
+    //   if (viewType === "normal") {
+    //     this.setElectricForceShow(true);
+    //     this.setMagneticForceShow(true);
+    //     this.setVelocityVectorShow(false);
+    //     this.setMagneticFieldParticleShow(false);
+    //   } else if (viewType === "electric") {
+    //     this.setElectricForceShow(true);
+    //     this.setVelocityVectorShow(true);
+    //     this.setMagneticForceShow(false);
+    //     this.setMagneticFieldParticleShow(false);
+    //   } else if (viewType === "magnetic") {
+    //     this.setMagneticForceShow(true);
+    //     this.setVelocityVectorShow(true);
+    //     this.setElectricForceShow(false);
+    //     this.setMagneticFieldParticleShow(true);
+    //   }
+    // }
 
     this.run = true;
+  }
+
+  private applyCameraView(viewType: string): void {
+    this.chart3D.currentCameraView = viewType;
+    this.chart3D.setCameraView(viewType);
+
+    if (viewType === "normal") {
+      this.setElectricForceShow(true);
+      this.setMagneticForceShow(true);
+      this.setVelocityVectorShow(false);
+      this.setMagneticFieldParticleShow(false);
+    } else if (viewType === "electric") {
+      this.setElectricForceShow(true);
+      this.setVelocityVectorShow(true);
+      this.setMagneticForceShow(false);
+      this.setMagneticFieldParticleShow(false);
+    } else if (viewType === "magnetic") {
+      this.setMagneticForceShow(true);
+      this.setVelocityVectorShow(true);
+      this.setElectricForceShow(false);
+      this.setMagneticFieldParticleShow(true);
+    }
+  }
+
+  private flushPendingCameraView(): void {
+    if (this.pendingCameraView !== null) {
+      const viewType = this.pendingCameraView;
+      this.pendingCameraView = null;
+      this.applyCameraView(viewType);
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -817,34 +959,48 @@ export class SimScreenView extends ScreenView {
     // Called every frame, with the time since the last frame in seconds
     // this.run = true;
 
-    if (!this.userInteracting && this.run && this.time < 4.9) {
-      const values = rk4(
-        false,
-        "",
-        "",
-        "",
-        [this.x1, this.y1, this.z1, this.vx1, this.vy1, this.vz1],
-        0.001 * this.model.simSpeed,
-        this.model.q,
-        this.model.mass,
-        this.model.e0x,
-        this.model.e0y,
-        this.model.e0z,
-        this.model.b0x,
-        this.model.b0y,
-        this.model.b0z,
-      );
-      this.x1 = values[0];
-      this.y1 = values[1];
-      this.z1 = values[2];
-      [this.x1, this.y1, this.z1, this.vx1, this.vy1, this.vz1] = values as [
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-      ];
+    if (
+      !this.userInteracting &&
+      this.run &&
+      this.time < 4.9 &&
+      this.playPause.value
+    ) {
+      // const values = rk4(
+      //   false,
+      //   "",
+      //   "",
+      //   "",
+      //   [this.x1, this.y1, this.z1, this.vx1, this.vy1, this.vz1],
+      //   0.001 * this.model.simSpeed,
+      //   this.model.q,
+      //   this.model.mass,
+      //   this.model.e0x,
+      //   this.model.e0y,
+      //   this.model.e0z,
+      //   this.model.b0x,
+      //   this.model.b0y,
+      //   this.model.b0z,
+      // );
+      const values = this.model.referenceRecordsProperty.value;
+      // this.x1 = values[0];
+      // this.y1 = values[1];
+      // this.z1 = values[2];
+      const idx = values.t.findIndex(t => Math.abs(t - this.time) < 0.01);
+      // console.log(idx, this.time);
+      this.x1 = values.x[idx];
+      this.y1 = values.y[idx];
+      this.z1 = values.z[idx];
+      this.vx1 = values.vx[idx];
+      this.vy1 = values.vy[idx];
+      this.vz1 = values.vz[idx];
+      // [this.x1, this.y1, this.z1, this.vx1, this.vy1, this.vz1] = values as [
+      //   number,
+      //   number,
+      //   number,
+      //   number,
+      //   number,
+      //   number,
+      // ];
 
       // (this.magneticForceVector(this.model.q, this.vx1, this.vy1, this.vz1, this.model.b0x, this.model.b0y, this.model.b0z))
 
@@ -861,51 +1017,50 @@ export class SimScreenView extends ScreenView {
         this.model.vdotz !== ""
       ) {
         this.hasTest = true;
-        const testValues = rk4(
-          true,
-          this.model.vdotx,
-          this.model.vdoty,
-          this.model.vdotz,
-          [
-            this.x1Test,
-            this.y1Test,
-            this.z1Test,
-            this.vx1Test,
-            this.vy1Test,
-            this.vz1Test,
-          ],
-          0.001 * this.model.simSpeed,
-          this.model.q,
-          this.model.mass,
-          this.model.e0x,
-          this.model.e0y,
-          this.model.e0z,
-          this.model.b0x,
-          this.model.b0y,
-          this.model.b0z,
-        );
-        this.x1Test = testValues[0];
-        this.y1Test = testValues[1];
-        this.z1Test = testValues[2];
-        [
-          this.x1Test,
-          this.y1Test,
-          this.z1Test,
-          this.vx1Test,
-          this.vy1Test,
-          this.vz1Test,
-        ] = testValues as [number, number, number, number, number, number];
+        // const testValues = rk4(
+        //   true,
+        //   this.model.vdotx,
+        //   this.model.vdoty,
+        //   this.model.vdotz,
+        //   [
+        //     this.x1Test,
+        //     this.y1Test,
+        //     this.z1Test,
+        //     this.vx1Test,
+        //     this.vy1Test,
+        //     this.vz1Test,
+        //   ],
+        //   0.001 * this.model.simSpeed,
+        //   this.model.q,
+        //   this.model.mass,
+        //   this.model.e0x,
+        //   this.model.e0y,
+        //   this.model.e0z,
+        //   this.model.b0x,
+        //   this.model.b0y,
+        //   this.model.b0z,
+        // );
+        const testValues = this.model.testRecordsProperty.value;
+        const testIdx = testValues.t.findIndex(t => Math.abs(t - this.time) < 0.01);
+        this.x1Test = testValues.x[testIdx];
+        this.y1Test = testValues.y[testIdx];
+        this.z1Test = testValues.z[testIdx];
+        this.vx1Test = testValues.vx[testIdx];
+        this.vy1Test = testValues.vy[testIdx];
+        this.vz1Test = testValues.vz[testIdx];
+        // this.x1Test = testValues[0];
+        // this.y1Test = testValues[1];
+        // this.z1Test = testValues[2];
+        // [
+        //   this.x1Test,
+        //   this.y1Test,
+        //   this.z1Test,
+        //   this.vx1Test,
+        //   this.vy1Test,
+        //   this.vz1Test,
+        // ] = testValues as [number, number, number, number, number, number];
 
-        this.trailXTest.push(this.x1Test);
-        this.trailYTest.push(this.y1Test);
-        this.trailZTest.push(this.z1Test);
-
-        const maxTrailLength = 100000;
-        if (this.trailXTest.length > maxTrailLength) {
-          this.trailXTest.shift();
-          this.trailYTest.shift();
-          this.trailZTest.shift();
-        }
+        
       }
 
       (this.chart3D as any).updateParticle(
@@ -928,9 +1083,11 @@ export class SimScreenView extends ScreenView {
 
       this.updateGraphs();
       this.time += 0.001 * this.model.simSpeed;
-    } else{
-      this.run = false;
+    }
+    if (this.time >= 4.9) {
+      // this.run = false;
       this.simulationFinished = true;
+      this.playPause.value = false;
     }
   }
 
