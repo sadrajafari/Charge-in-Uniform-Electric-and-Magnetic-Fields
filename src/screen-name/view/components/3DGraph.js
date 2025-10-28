@@ -202,6 +202,9 @@ export default class ThreeDGraph {
     showVelocityVector(this, this.visibleVelocityVector);
     showMagneticFieldOnParticleVector(this, this.visibleMagneticFieldParticle);
 
+    // showElectricFieldVector(this, this.Ex, this.Ey, this.Ez, x, y, z);
+    // showMagneticFieldVector(this, this.Bx, this.By, this.Bz, x, y, z);
+
     if (this.currentCameraView === "electric") {
       this.setCameraOrthogonalToElectricField(
         this.Ex,

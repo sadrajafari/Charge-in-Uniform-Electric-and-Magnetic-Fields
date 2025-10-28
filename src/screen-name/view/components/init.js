@@ -15,11 +15,12 @@ export default function init(material) {
   // material.camera.position.set(0, 0, -20);
 
   // Create renderer
-  material.renderer = new THREE.WebGLRenderer({ antialias: true });
+  material.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
   material.renderer.setSize(material.width, material.height);
   material.renderer.setClearColor(0x0a0a0a);
-  material.renderer.physicallyCorrectLights = true;
-  material.renderer.setPixelRatio(window.devicePixelRatio);
+  // material.renderer.physicallyCorrectLights = true;
+  // material.renderer.setPixelRatio(window.devicePixelRatio);
+  material.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 
   // Add renderer to DOM
   document.getElementById("graphDiv").appendChild(material.renderer.domElement);

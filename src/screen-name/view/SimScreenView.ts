@@ -632,6 +632,28 @@ export class SimScreenView extends ScreenView {
         this.model.e0yProperty.value,
         this.model.e0zProperty.value,
       );
+      if (!this.simInit.value) {
+        post(
+          `Electric Field show: ${show}`,
+          this.model.q,
+          this.model.mass,
+          this.model.e0x,
+          this.model.e0y,
+          this.model.e0z,
+          this.model.b0x,
+          this.model.b0y,
+          this.model.b0z,
+          this.model.v0xProperty.value,
+          this.model.v0yProperty.value,
+          this.model.v0zProperty.value,
+          this.model.showElectricFieldVectors.value,
+          this.model.showMagneticFieldVectors.value,
+          this.model.vdotx,
+          this.model.vdoty,
+          this.model.vdotz,
+          this.cameraViewProperty.value,
+        );
+      }
     });
     this.model.showMagneticFieldVectors.link((show: boolean) => {
       this.chart3D.toggleMagneticField(show);
@@ -644,21 +666,29 @@ export class SimScreenView extends ScreenView {
         this.model.e0yProperty.value,
         this.model.e0zProperty.value,
       );
+      if (!this.simInit.value) {
+        post(
+          `Magnetic Field show: ${show}`,
+          this.model.q,
+          this.model.mass,
+          this.model.e0x,
+          this.model.e0y,
+          this.model.e0z,
+          this.model.b0x,
+          this.model.b0y,
+          this.model.b0z,
+          this.model.v0xProperty.value,
+          this.model.v0yProperty.value,
+          this.model.v0zProperty.value,
+          this.model.showElectricFieldVectors.value,
+          this.model.showMagneticFieldVectors.value,
+          this.model.vdotx,
+          this.model.vdoty,
+          this.model.vdotz,
+          this.cameraViewProperty.value,
+        );
+      }
     });
-
-    // mode1.link((mode: boolean) => {
-    //   if (mode) {
-    //     this.setMagneticFieldParticleShow(true);
-    //     this.setMagneticForceShow(true);
-    //     this.setVelocityVectorShow(true);
-    //     this.setElectricForceShow(false);
-    //   } else {
-    //     this.setMagneticFieldParticleShow(false);
-    //     this.setVelocityVectorShow(false);
-    //     this.setElectricForceShow(true);
-    //     this.setMagneticForceShow(true);
-    //   }
-    // });
 
     const xvelocityGraph = document.createElement("div");
     xvelocityGraph.style.width = "300px";
@@ -780,7 +810,6 @@ export class SimScreenView extends ScreenView {
 
   public reset(value?: string): void {
     // this.resetTrail();
-    
 
     this.x1 = 0;
     this.y1 = 0;
@@ -833,7 +862,7 @@ export class SimScreenView extends ScreenView {
       this.model.vdotz,
       this.cameraViewProperty.value,
     );
-    
+
     this.xvelocityGraph.resetGraph();
     this.yvelocityGraph.resetGraph();
     this.zvelocityGraph.resetGraph();
@@ -1107,6 +1136,9 @@ export class SimScreenView extends ScreenView {
         this.vy1Test,
         this.vz1Test,
       );
+      // if (this.chart3D) {
+      //   this.chart3D._matrixUpdatedThisFrame = false; // Reset flag
+      // }
       this.updateValues(this.model.q, this.vx1, this.vy1, this.vz1);
 
       this.updateGraphs();
