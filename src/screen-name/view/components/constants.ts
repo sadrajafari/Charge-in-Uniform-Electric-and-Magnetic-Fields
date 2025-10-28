@@ -13,10 +13,11 @@ import {
   RoundToggleButton,
 } from "scenerystack";
 import { SimModel } from "../../model/SimModel";
+import { SimScreenView } from "../SimScreenView";
 
 // const model = new SimModel();
 
-export function createConstantPanel(model: SimModel) {
+export function createConstantPanel(model: SimModel, screen: SimScreenView) {
   const qSlider = new HSlider(model.qproperty, new Range(-2, 2), {
     scale: 0.6,
   });
@@ -345,6 +346,78 @@ export function createConstantPanel(model: SimModel) {
     }),
     { fill: new Color("#d3d3d3"), maxWidth: 290, scale: 0.85, minWidth: 260 },
   );
+
+
+  var changingWithId = [false, -1];
+
+  for (var slider of constantPanel._children) {
+    // if (slider !== simSpeedSlider) {
+    slider.addInputListener({
+      mousedown: function (event: { target: { _id: any } }) {
+
+        changingWithId[0] = true;
+        changingWithId[1] = event.target._id;
+      },
+    });
+  }
+  window.addEventListener("pointerup", () => {
+    if (changingWithId[1] === 323) {
+      model.reset();
+      screen.reset("charge changed");
+      screen.playPause.value = true;
+      changingWithId[1] = -1;
+    } else if (changingWithId[1] === 444) {
+      model.reset();
+      screen.reset("mass changed");
+      screen.playPause.value = true;
+      changingWithId[1] = -1;
+    } else if (changingWithId[1] === 459) {
+      model.reset();
+      screen.reset("Ex changed");
+      screen.playPause.value = true;
+      changingWithId[1] = -1;
+    } else if (changingWithId[1] === 474) {
+      model.reset();
+      screen.reset("Ey changed");
+      screen.playPause.value = true;
+      changingWithId[1] = -1;
+    } else if (changingWithId[1] === 489) {
+      model.reset();
+      screen.reset("Ez changed");
+      screen.playPause.value = true;
+      changingWithId[1] = -1;
+    } else if (changingWithId[1] === 504) {
+      model.reset();
+      screen.reset("Bx changed");
+      screen.playPause.value = true;
+      changingWithId[1] = -1;
+    } else if (changingWithId[1] === 519) {
+      model.reset();
+      screen.reset("By changed");
+      screen.playPause.value = true;
+      changingWithId[1] = -1;
+    } else if (changingWithId[1] === 534) {
+      model.reset();
+      screen.reset("Bz changed");
+      screen.playPause.value = true;
+      changingWithId[1] = -1;
+    } else if (changingWithId[1] === 549) {
+      model.reset();
+      screen.reset("Vx changed");
+      screen.playPause.value = true;
+      changingWithId[1] = -1;
+    } else if (changingWithId[1] === 564) {
+      model.reset();
+      screen.reset("Vy changed");
+      screen.playPause.value = true;
+      changingWithId[1] = -1;
+    } else if (changingWithId[1] === 579) {
+      model.reset();
+      screen.reset("Vz changed");
+      screen.playPause.value = true;
+      changingWithId[1] = -1;
+    }
+  });
 
   return constantPanel;
 }

@@ -89,6 +89,10 @@ export class SimScreenView extends ScreenView {
   setVelocityVectorShow: any;
   playPause: Property<boolean> = new Property(false);
   simPaused: Property<boolean> = new Property(false);
+  showElectricFieldVector = new Property<boolean>(true);
+  showMagneticFieldVector = new Property<boolean>(true);
+  cameraViewProperty = new Property<string>("normal");
+  simInit = new Property<boolean>(true);
   updateChargeRangeFile: null;
   private pendingCameraView: string | null = null;
   private simulationFinished: boolean = false;
@@ -115,8 +119,6 @@ export class SimScreenView extends ScreenView {
     this.model = model;
     this.layoutBounds.maxX = 1300;
 
-    post();
-
     const redBall = new Circle(7, { fill: "red" });
     const refText = new Text("Reference", { fontSize: 20, fill: "black" });
     refText.leftTop = new Vector2(720, 17);
@@ -130,7 +132,7 @@ export class SimScreenView extends ScreenView {
     this.addChild(redBall);
     this.addChild(blueBall);
 
-    this.constantPanel = createConstantPanel(model);
+    this.constantPanel = createConstantPanel(model, this);
     this.constantPanel.leftTop = new Vector2(0, 0);
     this.addChild(this.constantPanel);
 
@@ -182,23 +184,23 @@ export class SimScreenView extends ScreenView {
 
     this.setElectricForceShow(false);
 
-    const cameraViewProperty = new Property<string>("normal");
+    // const cameraViewProperty = new Property<string>("normal");
     const normalViewRadio = new AquaRadioButton(
-      cameraViewProperty,
+      this.cameraViewProperty,
       "normal",
       new Text("Standard View", { fontSize: 16, fill: "black" }),
       { radius: 8 },
     );
 
     const electricViewRadio = new AquaRadioButton(
-      cameraViewProperty,
+      this.cameraViewProperty,
       "electric",
       new Text("Electric Force View", { fontSize: 16, fill: "black" }),
       { radius: 8 },
     );
 
     const magneticViewRadio = new AquaRadioButton(
-      cameraViewProperty,
+      this.cameraViewProperty,
       "magnetic",
       new Text("Magnetic Force View", { fontSize: 16, fill: "black" }),
       { radius: 8 },
@@ -234,7 +236,30 @@ export class SimScreenView extends ScreenView {
     // Add to scene
     this.addChild(cameraViewPanel);
 
-    cameraViewProperty.link((viewType: string) => {
+    this.cameraViewProperty.link((viewType: string) => {
+      if (!this.simInit.value) {
+        post(
+          `view type: ${viewType}`,
+          this.model.qproperty.value,
+          this.model.massProperty.value,
+          this.model.e0xProperty.value,
+          this.model.e0yProperty.value,
+          this.model.e0zProperty.value,
+          this.model.b0xProperty.value,
+          this.model.b0yProperty.value,
+          this.model.b0zProperty.value,
+          this.model.v0xProperty.value,
+          this.model.v0yProperty.value,
+          this.model.v0zProperty.value,
+          this.model.showElectricFieldVectors,
+          this.model.showMagneticFieldVectors,
+          this.model.vdotx,
+          this.model.vdoty,
+          this.model.vdotz,
+          this.cameraViewProperty.value,
+        );
+      }
+
       if (this.simulationFinished || this.playPause.value === false) {
         this.pendingCameraView = viewType;
         return;
@@ -484,17 +509,17 @@ export class SimScreenView extends ScreenView {
       );
     });
 
-    const showElectricFieldVector = new Property<boolean>(true);
-    const showMagneticFieldVector = new Property<boolean>(true);
+    // const showElectricFieldVector = new Property<boolean>(true);
+    // const showMagneticFieldVector = new Property<boolean>(true);
 
     const ElectricFieldToggleBtn = new ToggleSwitch(
-      showElectricFieldVector,
+      this.model.showElectricFieldVectors,
       false,
       true,
       { scale: 0.8 },
     );
     const MagneticFieldToggleBtn = new ToggleSwitch(
-      showMagneticFieldVector,
+      this.model.showMagneticFieldVectors,
       false,
       true,
       { scale: 0.8 },
@@ -533,7 +558,7 @@ export class SimScreenView extends ScreenView {
       playPauseBtn.baseColor = play ? "#27BEF5" : "red";
       this.playPause.value = play;
       // console.log(this.playPause.value)
-      if (this.playPause.value === true){
+      if (this.playPause.value === true) {
         this.flushPendingCameraView();
       }
       // if (this.playPause.value === false && this.simulationFinished) {
@@ -596,7 +621,7 @@ export class SimScreenView extends ScreenView {
       showVectorsPanel.bottom + 5,
     );
 
-    showElectricFieldVector.link((show: boolean) => {
+    this.model.showElectricFieldVectors.link((show: boolean) => {
       this.chart3D.toggleElectricField(show);
       // Immediately update field vectors so arrows appear/disappear without slider change
       this.chart3D.updateFieldVector(
@@ -608,7 +633,7 @@ export class SimScreenView extends ScreenView {
         this.model.e0zProperty.value,
       );
     });
-    showMagneticFieldVector.link((show: boolean) => {
+    this.model.showMagneticFieldVectors.link((show: boolean) => {
       this.chart3D.toggleMagneticField(show);
       // Immediately update field vectors so arrows appear/disappear without slider change
       this.chart3D.updateFieldVector(
@@ -730,12 +755,32 @@ export class SimScreenView extends ScreenView {
     component.leftTop = new Vector2(0, this.equationPanelBoxes.bottom + 5);
     this.addChild(component);
 
-    // this.reset();
-    // this.reset();
+    post(
+      "Init",
+      this.model.q,
+      this.model.mass,
+      this.model.e0x,
+      this.model.e0y,
+      this.model.e0z,
+      this.model.b0x,
+      this.model.b0y,
+      this.model.b0z,
+      this.model.v0xProperty.value,
+      this.model.v0yProperty.value,
+      this.model.v0zProperty.value,
+      this.model.showElectricFieldVectors.value,
+      this.model.showMagneticFieldVectors.value,
+      this.model.vdotx,
+      this.model.vdoty,
+      this.model.vdotz,
+      this.cameraViewProperty.value,
+    );
+    this.simInit.value = false;
   }
 
-  public reset(): void {
+  public reset(value?: string): void {
     // this.resetTrail();
+    
 
     this.x1 = 0;
     this.y1 = 0;
@@ -767,45 +812,28 @@ export class SimScreenView extends ScreenView {
     this.model.v0xProperty.value = this.model.v0x;
     this.model.v0yProperty.value = this.model.v0y;
     this.model.v0zProperty.value = this.model.v0z;
-    // this.equationPanel.vdotxInput.updatePropertyFromField(
-    //   this.model.q,
-    //   this.model.mass,
-    //   this.model.e0x,
-    //   this.model.e0y,
-    //   this.model.e0z,
-    //   this.model.b0x,
-    //   this.model.b0y,
-    //   this.model.b0z,
-    //   this.model.v0x,
-    //   this.model.v0y,
-    //   this.model.v0z,
-    // );
-    // this.equationPanel.vdotyInput.updatePropertyFromField(
-    //   this.model.q,
-    //   this.model.mass,
-    //   this.model.e0x,
-    //   this.model.e0y,
-    //   this.model.e0z,
-    //   this.model.b0x,
-    //   this.model.b0y,
-    //   this.model.b0z,
-    //   this.model.v0x,
-    //   this.model.v0y,
-    //   this.model.v0z,
-    // );
-    // this.equationPanel.vdotzInput.updatePropertyFromField(
-    //   this.model.q,
-    //   this.model.mass,
-    //   this.model.e0x,
-    //   this.model.e0y,
-    //   this.model.e0z,
-    //   this.model.b0x,
-    //   this.model.b0y,
-    //   this.model.b0z,
-    //   this.model.v0x,
-    //   this.model.v0y,
-    //   this.model.v0z,
-    // );
+
+    post(
+      value ? value : "reset",
+      this.model.qproperty.value,
+      this.model.massProperty.value,
+      this.model.e0xProperty.value,
+      this.model.e0yProperty.value,
+      this.model.e0zProperty.value,
+      this.model.b0xProperty.value,
+      this.model.b0yProperty.value,
+      this.model.b0zProperty.value,
+      this.model.v0xProperty.value,
+      this.model.v0yProperty.value,
+      this.model.v0zProperty.value,
+      this.model.showElectricFieldVectors.value,
+      this.model.showMagneticFieldVectors.value,
+      this.model.vdotx,
+      this.model.vdoty,
+      this.model.vdotz,
+      this.cameraViewProperty.value,
+    );
+    
     this.xvelocityGraph.resetGraph();
     this.yvelocityGraph.resetGraph();
     this.zvelocityGraph.resetGraph();
@@ -985,7 +1013,7 @@ export class SimScreenView extends ScreenView {
       // this.x1 = values[0];
       // this.y1 = values[1];
       // this.z1 = values[2];
-      const idx = values.t.findIndex(t => Math.abs(t - this.time) < 0.01);
+      const idx = values.t.findIndex((t) => Math.abs(t - this.time) < 0.01);
       // console.log(idx, this.time);
       this.x1 = values.x[idx];
       this.y1 = values.y[idx];
@@ -1041,7 +1069,9 @@ export class SimScreenView extends ScreenView {
         //   this.model.b0z,
         // );
         const testValues = this.model.testRecordsProperty.value;
-        const testIdx = testValues.t.findIndex(t => Math.abs(t - this.time) < 0.01);
+        const testIdx = testValues.t.findIndex(
+          (t) => Math.abs(t - this.time) < 0.01,
+        );
         this.x1Test = testValues.x[testIdx];
         this.y1Test = testValues.y[testIdx];
         this.z1Test = testValues.z[testIdx];
@@ -1059,8 +1089,6 @@ export class SimScreenView extends ScreenView {
         //   this.vy1Test,
         //   this.vz1Test,
         // ] = testValues as [number, number, number, number, number, number];
-
-        
       }
 
       (this.chart3D as any).updateParticle(

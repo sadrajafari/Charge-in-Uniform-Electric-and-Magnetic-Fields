@@ -68,6 +68,9 @@ export class SimModel {
     vz: [] as number[],
   });
 
+  public showElectricFieldVectors: Property<boolean> = new Property(true);
+  public showMagneticFieldVectors: Property<boolean> = new Property(true);
+
 
 
   q: number;
@@ -117,6 +120,8 @@ export class SimModel {
   compiledVdotx: any;
   compiledVdoty: any;
   compiledVdotz: any;
+  // showElectricFieldVectors: boolean = true;
+  // showMagneticFieldVectors: boolean = true;
 
   constructor() {
     this.q = this.qproperty.value;
@@ -146,6 +151,8 @@ export class SimModel {
     this.compiledVdotx = this.compiledVdotx;;
     this.compiledVdoty = this.compiledVdoty;
     this.compiledVdotz = this.compiledVdotz;
+    // this.showMagneticFieldVectors = this.showMagneticFieldVectorsProperty.value;
+    // this.showElectricFieldVectors = this.showElectricFieldVectorsProperty.value;
 
     this.simSpeedProperty.lazyLink(() => {
       this.simSpeed = this.simSpeedProperty.value;

@@ -1,5 +1,6 @@
 import { DOM } from "scenerystack";
 import { SimModel } from "../../model/SimModel";
+import post from "./postData.js"
 
 // Add a global declaration for MathQuill on the window object
 declare global {
@@ -44,6 +45,8 @@ export default class EquationInput extends DOM {
           let hasError = false;
           let errorMsg = "";
           mathDiv.style.backgroundColor = "white";
+          
+          
 
           // Define variable substitutions
           // type VariableKey =
@@ -93,6 +96,27 @@ export default class EquationInput extends DOM {
           if (property && property.value !== undefined) {
             // property.value = parsedLatex;
             property.value = latex;
+            post(
+            `${id}`,
+            this.model.qproperty.value,
+            this.model.massProperty.value,
+            this.model.e0xProperty.value,
+            this.model.e0yProperty.value,
+            this.model.e0zProperty.value,
+            this.model.b0xProperty.value,
+            this.model.b0yProperty.value,
+            this.model.b0zProperty.value,
+            this.model.v0xProperty.value,
+            this.model.v0yProperty.value,
+            this.model.v0zProperty.value,
+            this.model.showElectricFieldVectors.value,
+            this.model.showMagneticFieldVectors.value,
+            this.model.vdotxProperty.value,
+            this.model.vdotyProperty.value,
+            this.model.vdotzProperty.value,
+            null
+            
+          )
           }
         },
       },
