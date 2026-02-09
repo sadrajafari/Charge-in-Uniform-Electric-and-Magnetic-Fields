@@ -34,12 +34,10 @@
 //     }
 //   }
 
-
-
 // import createCustomArrow from "./customArrow.js";
 
 // export default function magneticFieldOnParticle(material, x, y, z, Bx, By, Bz) {
-  
+
 //   // Remove previous arrow if it exists
 //   if (material.magneticFieldOnParticleArrow) {
 //     material.group.remove(material.magneticFieldOnParticleArrow);
@@ -66,8 +64,6 @@
 //       0,
 //       Math.min(1.5, (2 * (mag - minMag)) / (maxMag - minMag)),
 //     );
-
-    
 
 //     // Create custom arrow with adjustable parameters
 //     const shaftRadius = 0.05; // Line thickness
@@ -104,14 +100,23 @@
 //   }
 // }
 
-
-
 import createCustomArrow from "./customArrow.js";
 
-export default function magneticFieldOnParticle(material, x, y, z, Bx, By, Bz, type = "main") {
-  
+export default function magneticFieldOnParticle(
+  material,
+  x,
+  y,
+  z,
+  Bx,
+  By,
+  Bz,
+  type = "main",
+) {
   // ✅ Use separate property for test particle
-  const arrowKey = type === "test" ? "testMagneticFieldOnParticleArrow" : "magneticFieldOnParticleArrow";
+  const arrowKey =
+    type === "test"
+      ? "testMagneticFieldOnParticleArrow"
+      : "magneticFieldOnParticleArrow";
   if (material[arrowKey]) {
     material.group.remove(material[arrowKey]);
     material[arrowKey] = null;
@@ -133,8 +138,7 @@ export default function magneticFieldOnParticle(material, x, y, z, Bx, By, Bz, t
     const mag = Math.sqrt(Bx * Bx + By * By + Bz * Bz);
     const minMag = 0;
     const maxMag = 5;
-    const length = 2
-    
+    const length = 2;
 
     // Create custom arrow with adjustable parameters
     const shaftRadius = 0.05;
@@ -149,14 +153,11 @@ export default function magneticFieldOnParticle(material, x, y, z, Bx, By, Bz, t
       headRadius,
       headLength,
       color,
+      true
     );
 
     // ✅ Use material[arrowKey] here
-    material[arrowKey].position.set(
-      visualX,
-      visualY,
-      visualZ,
-    );
+    material[arrowKey].position.set(visualX, visualY, visualZ);
 
     // ✅ And here
     material[arrowKey].quaternion.setFromUnitVectors(
@@ -168,5 +169,13 @@ export default function magneticFieldOnParticle(material, x, y, z, Bx, By, Bz, t
     material[arrowKey].visible =
       material.visibleMagneticFieldParticle !== false;
     material.group.add(material[arrowKey]);
+
+    if (!material.showMagneticFieldParticle) {
+      material.magneticFieldOnParticleArrow.visible = false;
+    }
+    if (!material.showTestMagneticFieldParticle && type === "test") {
+      
+      material.testMagneticFieldOnParticleArrow.visible = false;
+    }
   }
 }

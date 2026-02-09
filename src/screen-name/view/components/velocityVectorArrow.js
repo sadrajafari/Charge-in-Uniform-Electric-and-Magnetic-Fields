@@ -93,12 +93,12 @@ export default function velocityVectorArrow(
   vz,
   type = "main",
 ) {
-
   const arrowKey = type === "test" ? "testVelocityArrow" : "velocityArrow";
   if (material[arrowKey]) {
     material.group.remove(material[arrowKey]);
     material[arrowKey] = null;
   }
+
   // Remove previous velocity arrow if it exists
   // if (material.velocityArrow) {
   //   material.group.remove(material.velocityArrow);
@@ -167,5 +167,12 @@ export default function velocityVectorArrow(
     // material.velocityArrow.visible = material.visibleVelocityVector !== false;
     material[arrowKey].visible = material.visibleVelocityVector !== false;
     material.group.add(material[arrowKey]);
+
+    if (!material.showReferenceVelocityVector) {
+      material.velocityArrow.visible = false;
+    }
+    if (!material.showTestVelocity && type === "test") {
+      material.testVelocityArrow.visible = false;
+    }
   }
 }

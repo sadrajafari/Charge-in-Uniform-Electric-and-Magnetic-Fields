@@ -112,8 +112,6 @@
 //   }
 // }
 
-
-
 import createCustomArrow from "./customArrow.js";
 
 export default function electricForceVector(
@@ -122,12 +120,13 @@ export default function electricForceVector(
   Ex = material.Ex,
   Ey = material.Ey,
   Ez = material.Ez,
-  x = null,      // ✅ Add these
+  x = null, // ✅ Add these
   y = null,
   z = null,
-  type = "main"
+  type = "main",
 ) {
-  const arrowKey = type === "test" ? "testElectricForceField" : "electricForceField";
+  const arrowKey =
+    type === "test" ? "testElectricForceField" : "electricForceField";
   if (material[arrowKey]) {
     material.group.remove(material[arrowKey]);
     material[arrowKey] = null;
@@ -139,12 +138,15 @@ export default function electricForceVector(
 
   if (xDir !== 0 || yDir !== 0 || zDir !== 0) {
     let centerX, centerY, centerZ;
-    
+
     // ✅ For test particle: use its actual position
     if (type === "test" && x !== null && y !== null && z !== null) {
-      const xScale = material.axisLength / (material.xRange.max - material.xRange.min);
-      const yScale = material.axisLength / (material.yRange.max - material.yRange.min);
-      const zScale = material.axisLength / (material.zRange.max - material.zRange.min);
+      const xScale =
+        material.axisLength / (material.xRange.max - material.xRange.min);
+      const yScale =
+        material.axisLength / (material.yRange.max - material.yRange.min);
+      const zScale =
+        material.axisLength / (material.zRange.max - material.zRange.min);
       centerX = (x - material.xRange.min) * xScale;
       centerY = (y - material.yRange.min) * yScale;
       centerZ = (z - material.zRange.min) * zScale;
@@ -168,7 +170,7 @@ export default function electricForceVector(
       headRadius,
       headLength,
       color,
-      true
+      false,
     );
 
     material[arrowKey].position.set(centerX, centerY, centerZ);
@@ -179,5 +181,9 @@ export default function electricForceVector(
 
     material[arrowKey].visible = true;
     material.group.add(material[arrowKey]);
+
+    if (!material.showTestElectricForce && type === "test") {
+      material.testElectricForceField.visible = false;
+    }
   }
 }

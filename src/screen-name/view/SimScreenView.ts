@@ -92,6 +92,7 @@ export class SimScreenView extends ScreenView {
   showElectricFieldVector = new Property<boolean>(true);
   showMagneticFieldVector = new Property<boolean>(true);
   cameraViewProperty = new Property<string>("normal");
+  displayMode: Property<string> = new Property("reference");
   simInit = new Property<boolean>(true);
   updateChargeRangeFile: null;
   private pendingCameraView: string | null = null;
@@ -206,26 +207,69 @@ export class SimScreenView extends ScreenView {
       { radius: 8 },
     );
 
+    const showRefCheckBox = new AquaRadioButton(
+      // this.model.referenceModeProperty,
+      this.model.displayModeProperty,
+      "reference",
+      new Text("Reference", { fontSize: 16, fill: "black" }),
+    );
+
+    const showTestCheckBox = new AquaRadioButton(
+      // this.model.testModeProperty,
+      this.model.displayModeProperty,
+      "test",
+      new Text("Test", { fontSize: 16, fill: "black" }),
+    );
+
+    // const dropArrows = new Checkbox(this.model.dropArrowsProperty, {});
+
     const cameraViewPanel = new Panel(
-      new VBox({
-        align: "left",
-        spacing: 12,
+      new HBox({
+        align: "top",
+        spacing: 20,
         children: [
-          new Text("Camera View:", {
-            fontSize: 18,
-            fill: "black",
-            fontWeight: "bold",
+          // Left side - Camera View controls
+          new VBox({
+            align: "left",
+            spacing: 12,
+            children: [
+              new Text("Camera View", {
+                fontSize: 18,
+                fill: "black",
+                fontWeight: "bold",
+              }),
+              normalViewRadio,
+              electricViewRadio,
+              magneticViewRadio,
+            ],
           }),
-          normalViewRadio,
-          electricViewRadio,
-          magneticViewRadio,
+          // Vertical separator line
+          new Rectangle(0, 0, 2, 120, {
+            fill: "#888",
+            cornerRadius: 1,
+          }),
+          // Right side - Show controls
+          new VBox({
+            align: "left",
+            spacing: 12,
+            children: [
+              new Text("Track", {
+                fontSize: 18,
+                fill: "black",
+                fontWeight: "bold",
+              }),
+              showRefCheckBox,
+              showTestCheckBox,
+              // dropArrows,
+            ],
+          }),
         ],
       }),
       {
         fill: "#d3d3d3",
         stroke: "#888",
         cornerRadius: 5,
-        scale: 0.9,
+        scale: 0.8,
         xMargin: 15,
         yMargin: 10,
       },
@@ -233,8 +277,76 @@ export class SimScreenView extends ScreenView {
 
     cameraViewPanel.leftTop = new Vector2(540, 500);
 
+    const runModeProperty = new Property<string>("run1");
+
+    // Create four radio buttons for run modes
+    const run1Radio = new AquaRadioButton(
+      runModeProperty,
+      "run1",
+      new Text("Run 1", { fontSize: 16, fill: "black" }),
+    );
+    const run2Radio = new AquaRadioButton(
+      runModeProperty,
+      "run2",
+      new Text("Run 2", { fontSize: 16, fill: "black" }),
+    );
+    const run3Radio = new AquaRadioButton(
+      runModeProperty,
+      "run3",
+      new Text("Run 3", { fontSize: 16, fill: "black" }),
+    );
+    const run4Radio = new AquaRadioButton(
+      runModeProperty,
+      "run4",
+      new Text("Run 4", { fontSize: 16, fill: "black" }),
+    );
+
+    const RunPanel = new Panel(
+      new VBox({
+        align: "center",
+        spacing: 15,
+        children: [run1Radio, run2Radio, run3Radio, run4Radio],
+      }),
+      {
+        fill: "#d3d3d3",
+        stroke: "#888",
+        cornerRadius: 5,
+        scale: 0.8,
+        xMargin: 15,
+        yMargin: 10,
+      },
+    );
+
+    this.addChild(RunPanel);
+
+    runModeProperty.link((mode: string) => {
+      if (mode === "run1") {
+        this.setElectricForceShow(false);
+        this.setMagneticForceShow(false);
+        this.setVelocityVectorShow(false);
+        this.setMagneticFieldParticleShow(false);
+      } else if (mode === "run2") {
+        this.setElectricForceShow(true);
+        this.setMagneticForceShow(false);
+        this.setVelocityVectorShow(true);
+        this.setMagneticFieldParticleShow(false);
+      } else if (mode === "run3") {
+        this.setElectricForceShow(false);
+        this.setMagneticForceShow(true);
+        this.setVelocityVectorShow(true);
+        this.setMagneticFieldParticleShow(true);
+      } else if (mode === "run4") {
+        this.setElectricForceShow(true);
+        this.setMagneticForceShow(true);
+        this.setVelocityVectorShow(true);
+        this.setMagneticFieldParticleShow(true);
+      }
+    })
+
     // Add to scene
     this.addChild(cameraViewPanel);
+
+    RunPanel.leftTop = new Vector2(850, 500);
 
     this.cameraViewProperty.link((viewType: string) => {
       if (!this.simInit.value) {
@@ -264,13 +376,21 @@ export class SimScreenView extends ScreenView {
         this.pendingCameraView = viewType;
         return;
       }
+      // if (this.model.referenceModeProperty.value){
       this.chart3D.currentCameraView = viewType;
       this.chart3D.setCameraView(viewType);
+      // } else if (!this.model.testModeProperty.value){ {
+      //   this.chart3D.currentCameraView = "normal";
+      //   this.chart3D.setCameraView("normal");
+
+      // }
+
       if (viewType === "normal") {
-        this.setElectricForceShow(true);
-        this.setMagneticForceShow(true);
-        this.setVelocityVectorShow(false);
-        this.setMagneticFieldParticleShow(false);
+        // this.setElectricForceShow(true);
+        // this.setMagneticForceShow(true);
+
+        // this.setVelocityVectorShow(true);
+        // this.setMagneticFieldParticleShow(true);
       } else if (viewType === "electric") {
         this.setElectricForceShow(true);
         this.setVelocityVectorShow(true);
@@ -353,10 +473,10 @@ export class SimScreenView extends ScreenView {
 
     // Update vector legend items to include dashed property
     const vectorLegendItems = [
-      { color: "#0072B2", label: "Magnetic Field", symbol: "→", dashed: false }, // ✅ Make this dashed
-      { color: "#0072B2", label: "Magnetic Force", symbol: "→", dashed: true },
-      { color: "#CC5500", label: "Electric Field", symbol: "→", dashed: false },
-      { color: "#CC5500", label: "Electric Force", symbol: "→", dashed: true },
+      { color: "#0072B2", label: "Magnetic Field", symbol: "→", dashed: true },
+      { color: "#0072B2", label: "Magnetic Force", symbol: "→", dashed: false }, // ✅ Make this dashed
+      { color: "#CC5500", label: "Electric Field", symbol: "→", dashed: true },
+      { color: "#CC5500", label: "Electric Force", symbol: "→", dashed: false },
       { color: "black", label: "Velocity", symbol: "→", dashed: false },
     ];
 
@@ -565,6 +685,12 @@ export class SimScreenView extends ScreenView {
       //   this.reset();
       //   this.model.reset();
       // }
+    });
+    window.addEventListener("keydown", (event) => {
+      if (event.code === "Space") {
+        event.preventDefault(); // Prevent page scroll
+        this.playPause.value = !this.playPause.value;
+      }
     });
 
     const showElectricFieldVectorHBox = new HBox({
@@ -986,10 +1112,10 @@ export class SimScreenView extends ScreenView {
     this.chart3D.setCameraView(viewType);
 
     if (viewType === "normal") {
-      this.setElectricForceShow(true);
-      this.setMagneticForceShow(true);
-      this.setVelocityVectorShow(false);
-      this.setMagneticFieldParticleShow(false);
+      // this.setElectricForceShow(true);
+      // this.setMagneticForceShow(true);
+      // this.setVelocityVectorShow(false);
+      // this.setMagneticFieldParticleShow(false);
     } else if (viewType === "electric") {
       this.setElectricForceShow(true);
       this.setVelocityVectorShow(true);

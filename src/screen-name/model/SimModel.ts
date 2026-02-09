@@ -42,6 +42,8 @@ export class SimModel {
   public ydotProperty: Property<string> = new Property("");
   public zdotProperty: Property<string> = new Property("");
 
+  public displayModeProperty: Property<string> = new Property("reference");
+
   // Vector visualization properties
   public vectorDensityProperty: Property<number> = new Property(3);
   public numberOfSurfacesProperty: Property<number> = new Property(5);
@@ -70,8 +72,9 @@ export class SimModel {
 
   public showElectricFieldVectors: Property<boolean> = new Property(true);
   public showMagneticFieldVectors: Property<boolean> = new Property(true);
-
-
+  public testModeProperty: Property<boolean> = new Property(true);
+  public referenceModeProperty: Property<boolean> = new Property(true);
+  
 
   q: number;
   mass: number;
@@ -120,6 +123,11 @@ export class SimModel {
   compiledVdotx: any;
   compiledVdoty: any;
   compiledVdotz: any;
+  testMode: boolean = true;
+  referenceMode: boolean = true;
+
+  displayMode: string = "reference";
+
   // showElectricFieldVectors: boolean = true;
   // showMagneticFieldVectors: boolean = true;
 
@@ -148,9 +156,11 @@ export class SimModel {
     this.rowNumber = this.rowNumberProperty.value;
     this.referenceRecords = this.referenceRecordsProperty.value;
     this.testRecords = this.testRecordsProperty.value;
-    this.compiledVdotx = this.compiledVdotx;;
+    this.compiledVdotx = this.compiledVdotx;
     this.compiledVdoty = this.compiledVdoty;
     this.compiledVdotz = this.compiledVdotz;
+    this.testMode = this.testModeProperty.value;
+    this.referenceMode = this.referenceModeProperty.value;
     // this.showMagneticFieldVectors = this.showMagneticFieldVectorsProperty.value;
     // this.showElectricFieldVectors = this.showElectricFieldVectorsProperty.value;
 
@@ -164,6 +174,11 @@ export class SimModel {
 
     this.numberOfSurfacesProperty.lazyLink(() => {
       this.numberOfSurfaces = this.numberOfSurfacesProperty.value;
+    });
+
+    this.displayModeProperty.lazyLink((mode) => {
+      this.displayMode = mode;
+      console.log(this.displayMode);
     });
   }
   public reset(): void {
@@ -196,12 +211,11 @@ export class SimModel {
 
     if (this.hasTest) {
       // @ts-ignore
-      this.compiledVdotx = evaluatex(this.vdotx, { latex: true })
+      this.compiledVdotx = evaluatex(this.vdotx, { latex: true });
       // @ts-ignore
-      this.compiledVdoty = evaluatex(this.vdoty, { latex: true })
+      this.compiledVdoty = evaluatex(this.vdoty, { latex: true });
       // @ts-ignore
-      this.compiledVdotz = evaluatex(this.vdotz, { latex: true })
-      
+      this.compiledVdotz = evaluatex(this.vdotz, { latex: true });
     }
 
     const values = calculateRK4(

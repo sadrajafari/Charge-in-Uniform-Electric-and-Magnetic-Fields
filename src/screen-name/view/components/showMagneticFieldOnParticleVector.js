@@ -7,7 +7,7 @@ export default function showMagneticFieldOnParticleVector(material, status) {
       material.group.add(material.testMagneticFieldOnParticleArrow);
     } else {
       material.group.remove(material.testMagneticFieldOnParticleArrow);
-      material.testMagneticFieldOnParticleArrow = null;
+      // material.testMagneticFieldOnParticleArrow = null;
     }
   }
 
