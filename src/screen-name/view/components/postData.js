@@ -50,5 +50,5 @@ export default async function post(
     body: JSON.stringify(data),
   })
     .then((response) => response.json())
-    .catch((err) => console.log(err));
+    // .catch((err) => console.log(err));
 }

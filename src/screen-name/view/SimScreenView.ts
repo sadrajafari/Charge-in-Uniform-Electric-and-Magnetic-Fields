@@ -12,6 +12,7 @@ import {
 } from "scenerystack/scenery";
 import { createConstantPanel } from "./components/constants.js";
 import equationInput from "./components/equationInput.js";
+// @ts-ignore
 import post from "./components/postData.js";
 
 import {
@@ -94,6 +95,7 @@ export class SimScreenView extends ScreenView {
   cameraViewProperty = new Property<string>("normal");
   displayMode: Property<string> = new Property("reference");
   simInit = new Property<boolean>(true);
+  // @ts-ignore
   updateChargeRangeFile: null;
   private pendingCameraView: string | null = null;
   private simulationFinished: boolean = false;
@@ -148,14 +150,19 @@ export class SimScreenView extends ScreenView {
     const graphDiv = document.createElement("div");
     graphDiv.id = "graphDiv";
     graphDiv.style.width = "750px";
-    // graphDiv.style.height = "550px";
     graphDiv.style.height = "450px";
-    // graphDiv.style.height = "50px";
     graphDiv.style.backgroundColor = "black";
     graphDiv.style.marginTop = "2rem";
+    
+    // 
+    // graphDiv.style.border = "2px solid #888"; 
+    
+    
+    // 
     document.body.appendChild(graphDiv);
-    // this.chart3D = new ThreeDGraph(750, 550);
+    
     this.chart3D = new ThreeDGraph(750, 450);
+    // this.chart3D = new ThreeDGraph(500, 450);
     this.updateParticle = this.chart3D.updateParticle.bind(this.chart3D);
     this.updateChartsRange = this.chart3D.updateRange.bind(this.chart3D);
 
@@ -305,7 +312,7 @@ export class SimScreenView extends ScreenView {
       new VBox({
         align: "center",
         spacing: 15,
-        children: [run1Radio, run2Radio, run3Radio, run4Radio],
+        children: [run1Radio, run2Radio, run3Radio],
       }),
       {
         fill: "#d3d3d3",
@@ -341,7 +348,7 @@ export class SimScreenView extends ScreenView {
         this.setVelocityVectorShow(true);
         this.setMagneticFieldParticleShow(true);
       }
-    })
+    });
 
     // Add to scene
     this.addChild(cameraViewPanel);
@@ -388,7 +395,6 @@ export class SimScreenView extends ScreenView {
       if (viewType === "normal") {
         // this.setElectricForceShow(true);
         // this.setMagneticForceShow(true);
-
         // this.setVelocityVectorShow(true);
         // this.setMagneticFieldParticleShow(true);
       } else if (viewType === "electric") {
@@ -538,6 +544,7 @@ export class SimScreenView extends ScreenView {
     this.addChild(rowNumberText);
 
     this.model.rowNumberProperty.lazyLink((event) => {
+      // @ts-ignore
       this.updateRows(parseInt(event));
       this.chart3D.renderer.render(this.chart3D.scene, this.chart3D.camera);
     });

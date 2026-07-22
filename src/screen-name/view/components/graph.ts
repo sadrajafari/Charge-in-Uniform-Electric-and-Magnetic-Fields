@@ -95,6 +95,7 @@
 //   }
 // }
 
+// @ts-ignore
 import * as d3 from "d3";
 
 export class GraphComponent {
@@ -231,7 +232,9 @@ export class GraphComponent {
     // Update reference line
     const lineGenerator = d3
       .line<{ time: number; value: number }>()
+      // @ts-ignore
       .x((d) => this.xScale(d.time))
+      // @ts-ignore
       .y((d) => this.yScale(d.value));
 
     this.referenceLine.attr("d", lineGenerator(this.referenceData));

@@ -25,7 +25,7 @@ onReadyToLaunch(() => {
     new SimScreen({ tandem: Tandem.ROOT.createTandem("simScreen") }),
   ];
 
-  console.log(JoistStrings.menuItem.about);
+  
 
 
   const sim = new Sim(titleStringProperty, screens);

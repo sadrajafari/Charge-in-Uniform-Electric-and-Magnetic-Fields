@@ -178,7 +178,7 @@ export class SimModel {
 
     this.displayModeProperty.lazyLink((mode) => {
       this.displayMode = mode;
-      console.log(this.displayMode);
+      
     });
   }
   public reset(): void {

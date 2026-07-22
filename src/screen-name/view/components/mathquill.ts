@@ -1,5 +1,6 @@
 import { DOM } from "scenerystack";
 import { SimModel } from "../../model/SimModel";
+// @ts-ignore
 import post from "./postData.js"
 
 // Add a global declaration for MathQuill on the window object
@@ -135,7 +136,7 @@ export default class EquationInput extends DOM {
       // Do NOT set this.property.value here!
     }
   }
-
+  // @ts-ignore
   updatePropertyFromField(q, m, ex, ey, ez, bx, by, bz, vx, vy, vz) {
     const latex = this.mathField.latex().trim();
     const variableMap = {

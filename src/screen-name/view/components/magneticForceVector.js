@@ -119,6 +119,7 @@ export default function magneticForceVector(
   const xDir = q * (vy * Bz - vz * By);
   const yDir = q * (vz * Bx - vx * Bz);
   const zDir = q * (vx * By - vy * Bx);
+  
 
   // Only show if force is nonzero
   if (xDir !== 0 || yDir !== 0 || zDir !== 0) {
